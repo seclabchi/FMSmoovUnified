@@ -7,20 +7,20 @@
 
 class TestGeneratorGUI : public juce::Component
 {
-	public:
-		TestGeneratorGUI(SettingsRegistry& settings_reg);
-		virtual ~TestGeneratorGUI();
-		void paint(juce::Graphics&) override;
-		void resized() override;
+    public:
+        TestGeneratorGUI(SettingsRegistry& settings_reg);
+        virtual ~TestGeneratorGUI();
+        void paint(juce::Graphics&) override;
+        void resized() override;
 
-	private:
-		juce::TextButton done_button{ "Done" };
-		TestGenGroup* group_gen_01;
-		TestGenGroup* group_gen_02;
-		TestGenGroup* group_gen_03;
+    private:
+        juce::TextButton done_button{ "Done" };
+        TestGenGroup* group_gen_01;
+        TestGenGroup* group_gen_02;
+        TestGenGroup* group_gen_03;
 
-		SettingsRegistry& settings_reg;
+        SettingsRegistry& settings_reg;
 
-		JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestGeneratorGUI)
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(TestGeneratorGUI)
 };
 
