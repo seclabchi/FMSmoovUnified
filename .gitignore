@@ -1,0 +1,7 @@
+**/Builds
+**/JuceLibraryCode
+*.xcodeproj
+*.sln
+*.suo
+*.aps
+*.user
