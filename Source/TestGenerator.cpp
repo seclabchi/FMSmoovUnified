@@ -1,31 +1,49 @@
 #include "TestGenerator.h"
 
-TestGenerator::TestGenerator(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg) {
+TestGenerator::TestGenerator(SettingsRegistry& _settings_reg, uint32_t _num_channels) : 
+    settings_reg(_settings_reg), 
+    num_channels(_num_channels) {
     
     settings_reg.state.addListener(this);
 
-    tone_gen_01 = new juce::ToneGeneratorAudioSource();
-    tone_gen_02 = new juce::ToneGeneratorAudioSource();
-    tone_gen_03 = new juce::ToneGeneratorAudioSource();
+    tone_gen_01 = std::make_unique<fmsmoov::OscillatorSource>(settings_reg, juce::String("gen01"), num_channels);
+    tone_gen_02 = std::make_unique<fmsmoov::OscillatorSource>(settings_reg, juce::String("gen02"), num_channels);
+    tone_gen_03 = std::make_unique<fmsmoov::OscillatorSource>(settings_reg, juce::String("gen03"), num_channels);
 
-    mixer = new juce::MixerAudioSource();
+    mixer = std::make_unique<juce::MixerAudioSource>();
+    current_block_size = 0;
+    current_sample_rate = 0;
 }
 
 TestGenerator::~TestGenerator() {
     mixer->removeAllInputs();
-    
-    delete mixer;
-    
-    delete tone_gen_01;
-    delete tone_gen_02;
-    delete tone_gen_03;
 }
 
 void TestGenerator::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
+    mixer->removeAllInputs();
+
+    if (settings_reg.gen01_enable) {
+        add_source_if_needed(tone_gen_01.get());
+    }
+
+    if (settings_reg.gen02_enable) {
+        add_source_if_needed(tone_gen_02.get());
+
+    }
+
+    if (settings_reg.gen03_enable) {
+        add_source_if_needed(tone_gen_03.get());
+
+    }
+    
     mixer->prepareToPlay(samplesPerBlockExpected, sampleRate);
+
+    current_block_size = samplesPerBlockExpected;
+    current_sample_rate = sampleRate;
 }
 
 void TestGenerator::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
+
     if (should_update_mixer.load()) {
         update_mixer();
     }
@@ -33,15 +51,20 @@ void TestGenerator::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
     if (should_update_gens.load()) {
         update_gens();
     }
-
-    mixer->getNextAudioBlock(bufferToFill);
+    
+    /* You must have a valid audio buffer from the parent, or this will just output garbage
+     * which probably has the side effect of muting the output.
+     */
+    if (!settings_reg.all_gens_mute.load()) {
+        mixer->getNextAudioBlock(bufferToFill);
+    }
 }
 
 void TestGenerator::releaseResources() {
-    mixer->releaseResources();
     tone_gen_01->releaseResources();
     tone_gen_02->releaseResources();
     tone_gen_03->releaseResources();
+    mixer->releaseResources();
 }
 
 void TestGenerator::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
@@ -65,38 +88,90 @@ void TestGenerator::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Id
 }
 
 void TestGenerator::update_gens() {
-    tone_gen_01->setFrequency(settings_reg.gen01_freq);
-    tone_gen_01->setAmplitude(juce::Decibels::decibelsToGain(settings_reg.gen01_ampl.load()));
-    tone_gen_02->setFrequency(settings_reg.gen02_freq);
-    tone_gen_02->setAmplitude(juce::Decibels::decibelsToGain(settings_reg.gen02_ampl.load()));
-    tone_gen_03->setFrequency(settings_reg.gen03_freq);
-    tone_gen_03->setAmplitude(juce::Decibels::decibelsToGain(settings_reg.gen03_ampl.load()));
-    
-
+    DBG("TestGenerator::update_gens");
     should_update_gens.store(false);
 }
 
 void TestGenerator::update_mixer() {
+    DBG("TestGenerator::update_mixer");
+
     if (settings_reg.gen01_enable.load()) {
-        mixer->addInputSource(tone_gen_01, false);
+        add_source_if_needed(tone_gen_01.get());
     }
     else {
-        mixer->removeInputSource(tone_gen_01);
+        remove_source_if_present(tone_gen_01.get());
     }
 
     if (settings_reg.gen02_enable.load()) {
-        mixer->addInputSource(tone_gen_02, false);
+        add_source_if_needed(tone_gen_02.get());
     }
     else {
-        mixer->removeInputSource(tone_gen_02);
+        remove_source_if_present(tone_gen_02.get());
     }
 
     if (settings_reg.gen03_enable.load()) {
-        mixer->addInputSource(tone_gen_03, false);
+        add_source_if_needed(tone_gen_03.get());
     }
     else {
-        mixer->removeInputSource(tone_gen_03);
+        remove_source_if_present(tone_gen_03.get());
     }
 
     should_update_mixer.store(false);
+}
+
+/*
+ *  I spent a ton of time debugging this.  The MixerAudioSource passes in the
+ *  audio buffer to the first item in the mixer list.  For the 1->n sources,
+ *  it passes it's own temporary buffer.  THIS IS A MAJOR LANDMINE.
+ * 
+ *  For buffers 1 through n, you must clear the buffer passed to the source
+ *  from the mixer, i.e. for the first buffer, the buffer is cleared in the parent
+ *  of the mixer.  For every subsequent buffer, the source itself needs to clear
+ *  the buffer passed to it.  So when you are adding and removing sources, you
+ *  need to manage the source behavior: does it clear the buffer handed to it before
+ *  calling addFrom? 
+ * 
+ *  Buffer 0:  buffer is cleared in the mixer parent
+ *  Buffer 1-n:  clear the buffer first (this is a temp buffer inside the mixer that is reused)
+ * 
+ *  So when we're adding or removing sources, we need to tell that source whether or not
+ *  to clear the buffer in its getNextAudioBlock function.  You don't want to clear for the 0th
+ *  buffer because that will destroy whatever was upstream of the mixer.
+ * 
+ */
+void TestGenerator::add_source_if_needed(fmsmoov::OscillatorSource* src, bool mixer_is_running) {
+    if (false == sources.contains(src)) {
+        DBG("Adding source 0x" << juce::String::toHexString((juce::uint64) src));
+
+        if (true == mixer_is_running) {
+            src->prepareToPlay(current_block_size, current_sample_rate);
+        }
+
+        sources.add(src);
+        configure_source_clear_behavior();
+        mixer->addInputSource(src, false);
+    }
+}
+
+void TestGenerator::remove_source_if_present(fmsmoov::OscillatorSource* src) {
+    if (true == sources.contains(src)) {
+        DBG("Removing source 0x" << juce::String::toHexString((juce::uint64)src));
+        sources.remove(sources.indexOf(src));
+        configure_source_clear_behavior();
+        mixer->removeInputSource(src);
+    }
+}
+
+void TestGenerator::configure_source_clear_behavior() {
+    fmsmoov::OscillatorSource* src = nullptr;
+
+    for (uint32_t i = 0; i < sources.size(); ++i) {
+        src = sources[i];
+        if (0 == i) {
+            src->set_must_clear_buffer(false);
+            continue;
+        }
+
+        src->set_must_clear_buffer(true);
+    }
 }

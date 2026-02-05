@@ -8,11 +8,6 @@ TestGenGroup::TestGenGroup(const juce::String& _component_name, const juce::Stri
     amplitude_propname = _component_name + "_" + "ampl";
     enable_propname = _component_name + "_" + "enable";
 
-    on_gen_type_changed = NULL;
-    on_frequency_changed = NULL;
-    on_amplitude_changed = NULL;
-    on_enabled_changed = NULL;
-
     addAndMakeVisible(group);
 
     addAndMakeVisible(gen_type_label);
@@ -62,35 +57,6 @@ TestGenGroup::TestGenGroup(const juce::String& _component_name, const juce::Stri
      */
 
     settings_reg.state.sendPropertyChangeMessage(frequency_propname);
-
-    gen_type.onChange = [this] {
-        auto selected_gen_type = static_cast<fmsmoov::GEN_TYPE>(gen_type.getSelectedId());
-        settings_reg.state.setProperty(gen_type_propname, selected_gen_type, nullptr);
-        if (on_gen_type_changed) {
-            on_gen_type_changed(selected_gen_type);
-        }
-        };
-
-    frequency.onValueChange = [this] {
-        auto selected_frequency = frequency.getValue();
-        if (on_frequency_changed) {
-            on_frequency_changed(selected_frequency);
-        }
-    };
-
-    amplitude.onValueChange = [this] {
-        auto selected_amplitude = frequency.getValue();
-        if (on_amplitude_changed) {
-            on_frequency_changed(selected_amplitude);
-        }
-        };
-
-    enabled.onStateChange = [this] {
-        auto selected_enabled = enabled.getState();
-        if (on_enabled_changed) {
-            on_enabled_changed(selected_enabled);
-        }
-        };
 }
 
 TestGenGroup::~TestGenGroup() {

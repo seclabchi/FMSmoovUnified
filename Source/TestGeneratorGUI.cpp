@@ -1,6 +1,8 @@
 #include "TestGeneratorGUI.h"
 
 TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg) {
+    settings_reg.state.addListener(this);
+
     addAndMakeVisible(done_button);
 
     group_gen_01 = new TestGenGroup("gen01", "GEN 01", settings_reg);
@@ -10,14 +12,22 @@ TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_r
     done_button.onClick = [this] {
         juce::Logger::writeToLog("Done clicked");
 
-        settings_reg.state.setProperty("gen01_enable", false, nullptr);
-        settings_reg.state.setProperty("gen02_enable", false, nullptr);
-        settings_reg.state.setProperty("gen03_enable", false, nullptr);
-
         if (auto* dw = findParentComponentOfClass<juce::Component>()) {
             dw->exitModalState(1);
         }
+        //delete this;
     };
+
+    button_gens_mute.onClick = [this] {
+        bool gens_mute = button_gens_mute.getToggleState();
+        settings_reg.state.setProperty("all_gens_mute", gens_mute, nullptr);
+    };
+
+    button_gens_mute.setToggleState(settings_reg.state.getProperty("all_gens_mute"), juce::dontSendNotification);
+    button_gens_mute.setClickingTogglesState(true);
+    button_gens_mute.setColour(juce::TextButton::buttonOnColourId, juce::Colours::lightpink);
+    button_gens_mute.setColour(juce::TextButton::buttonColourId, juce::Colours::lightblue);
+    addAndMakeVisible(button_gens_mute);
 
     group_gen_01->init(settings_reg.state.getProperty("gen01_type"),
         settings_reg.state.getProperty("gen01_freq"),
@@ -44,14 +54,16 @@ TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_r
 }
 
 TestGeneratorGUI::~TestGeneratorGUI() {
-    settings_reg.state.setProperty("gen01_enable", false, nullptr);
-    settings_reg.state.setProperty("gen02_enable", false, nullptr);
-    settings_reg.state.setProperty("gen03_enable", false, nullptr);
+    settings_reg.state.removeListener(this);
 
     delete group_gen_01;
     delete group_gen_02;
     delete group_gen_03;
 }
+
+//void TestGeneratorGUI::closeButtonPressed() {
+//    delete this;
+//}
 
 void TestGeneratorGUI::paint(juce::Graphics& g) {
     //g.fillAll(juce::Colours::red);
@@ -82,6 +94,11 @@ void TestGeneratorGUI::resized() {
     fb.alignContent = juce::FlexBox::AlignContent::center;
 
     fb.items.add(juce::FlexItem(done_button).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
+    fb.items.add(juce::FlexItem(button_gens_mute).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
 
     fb.performLayout(button_area);
+}
+
+void TestGeneratorGUI::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
+
 }

@@ -16,24 +16,11 @@ MainComponent::MainComponent() {
     DBG("Connected to settings file " << settings_file.getFullPathName());
 
     const juce::String reg_name = "FMSmoov Settings Registry";
-    settings_reg = new SettingsRegistry(reg_name);
+    settings_reg = std::make_unique<SettingsRegistry>(reg_name);
     settings_reg->state.addListener(this);
 
-    is_tone_on = false;
-    test_generator = new TestGenerator(*settings_reg);
-
-    // Some platforms require permissions to open input channels so request that here
-    if (juce::RuntimePermissions::isRequired (juce::RuntimePermissions::recordAudio)
-        && ! juce::RuntimePermissions::isGranted (juce::RuntimePermissions::recordAudio))
-    {
-        juce::RuntimePermissions::request (juce::RuntimePermissions::recordAudio,
-                                           [&] (bool granted) { setAudioChannels (granted ? 2 : 0, 2); });
-    }
-    else 
-    {
-        // Specify the number of input and output channels that we want to open
-        setAudioChannels (2, 2);
-    }
+    load_settings();
+    test_generator = std::make_unique<TestGenerator>(*settings_reg, NUM_CHANNELS);
 
 #if JUCE_MAC
     juce::MenuBarModel::setMacMainMenu(this);
@@ -60,14 +47,31 @@ MainComponent::MainComponent() {
     const uint32_t height = 768;
 
     setSize(width, height);
+
+    // Some platforms require permissions to open input channels so request that here
+    if (juce::RuntimePermissions::isRequired(juce::RuntimePermissions::recordAudio)
+        && !juce::RuntimePermissions::isGranted(juce::RuntimePermissions::recordAudio))
+    {
+        juce::RuntimePermissions::request(juce::RuntimePermissions::recordAudio,
+            [&](bool granted) { setAudioChannels(granted ? 2 : 0, 2); });
+    }
+    else
+    {
+        // Specify the number of input and output channels that we want to open
+        setAudioChannels(NUM_CHANNELS, NUM_CHANNELS);
+    }
+
+    startTimer(60000);
 }
 
 MainComponent::~MainComponent()
 {
     // This shuts down the audio device and clears the audio source.
     shutdownAudio();
-    delete test_generator;
-    delete settings_reg;
+
+    if (settings_file_needs_update) {
+        save_settings();
+    }
 }
 
 //==============================================================================
@@ -93,6 +97,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
 
     // Right now we are not producing any data, in which case we need to clear the buffer
     // (to prevent the output of random noise)
+    bufferToFill.clearActiveBufferRegion();
     test_generator->getNextAudioBlock(bufferToFill);
 }
 
@@ -157,28 +162,51 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex) {
         this->menuItemsChanged();
     }
     else if (menuItemID == 101) {
-        juce::DialogWindow::LaunchOptions options;
 
-        auto* gen_dlg = new TestGeneratorGUI(*settings_reg);
-        options.content.setOwned(gen_dlg);
+        if (test_generator_dlg != nullptr) {
+            test_generator_dlg->toFront(true);
+        }
+        else {
+            juce::DialogWindow::LaunchOptions options;
 
-        options.dialogTitle = "Test Generator";
-        options.dialogBackgroundColour = getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId);
-        options.escapeKeyTriggersCloseButton = true;
-        options.useNativeTitleBar = true;
-        options.resizable = false;
-        options.useBottomRightCornerResizer = false;
-
-        options.launchAsync();
+            options.content.setOwned(new TestGeneratorGUI(*settings_reg));
+            options.dialogTitle = "FMSmoov Test Generator";
+            options.dialogBackgroundColour = getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId);
+            options.escapeKeyTriggersCloseButton = true;
+            options.useNativeTitleBar = true;
+            options.resizable = false;
+            options.useBottomRightCornerResizer = false;
+            test_generator_dlg.reset(options.create());
+            test_generator_dlg->setVisible(true);
+            test_generator_dlg->addComponentListener(this);
+        }
     }
 }
 
 void MainComponent::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
     DBG("Setting changed: " << p.toString());
-    juce::AsyncUpdater::triggerAsyncUpdate();
+
+    if (p.toString().compare("last_saved")) {
+        settings_file_needs_update.store(true);
+    }
+}
+
+void MainComponent::timerCallback() {
+    if (settings_file_needs_update) {
+        save_settings();
+        settings_file_needs_update.store(false);
+    }
+}
+
+void MainComponent::componentBeingDeleted(juce::Component& component) {
+    if (&component == test_generator_dlg.get()) {
+        test_generator_dlg.release();
+    }
 }
 
 void MainComponent::save_settings() {
+    DBG("setting save triggered");
+
     juce::TemporaryFile temp_file(settings_file);
 
     auto now = juce::Time::getCurrentTime();
@@ -215,6 +243,20 @@ void MainComponent::save_settings() {
 
 }
 
+void MainComponent::load_settings() {
+    if (settings_file.existsAsFile()) {
+        if (auto xml = juce::parseXML(settings_file)) {
+            settings_reg->state = juce::ValueTree::fromXml(*xml);
+
+            if (!(settings_reg->state.isValid())) {
+                DBG("SETTINGS REGISTRY IS INVALID.");
+            }
+            else {
+                settings_reg->load_from_value_tree();
+            }
+        }
+    }
+}
+
 void MainComponent::handleAsyncUpdate() {
-    save_settings();
 }

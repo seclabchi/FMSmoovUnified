@@ -5,19 +5,21 @@
 #include "TestGenGroup.h"
 #include "SettingsRegistry.h"
 
-class TestGeneratorGUI : public juce::Component
+class TestGeneratorGUI : public juce::Component, public juce::ValueTree::Listener
 {
     public:
-        TestGeneratorGUI(SettingsRegistry& settings_reg);
+        TestGeneratorGUI(SettingsRegistry& _settings_reg);
         virtual ~TestGeneratorGUI();
         void paint(juce::Graphics&) override;
         void resized() override;
-
+        void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) override;
+        //void closeButtonPressed() override;
     private:
         juce::TextButton done_button{ "Done" };
         TestGenGroup* group_gen_01;
         TestGenGroup* group_gen_02;
         TestGenGroup* group_gen_03;
+        juce::TextButton button_gens_mute{ "MUTE ALL" };
 
         SettingsRegistry& settings_reg;
 

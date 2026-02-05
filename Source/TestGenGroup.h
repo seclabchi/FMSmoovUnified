@@ -15,11 +15,6 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 
-    std::function<void(fmsmoov::GEN_TYPE)> on_gen_type_changed;
-    std::function<void(double)> on_frequency_changed;
-    std::function<void(double)> on_amplitude_changed;
-    std::function<void(bool)> on_enabled_changed;
-
 private:
     juce::GroupComponent group;
     juce::Label gen_type_label;

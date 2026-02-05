@@ -25,10 +25,13 @@ public:
 	std::atomic<bool> gen02_enable{ false };
 	std::atomic<bool> gen03_enable{ false };
 
+    std::atomic<bool> all_gens_mute{ true };
+
 	SettingsRegistry(const juce::String& _reg_name);
 	virtual ~SettingsRegistry();
 
 	void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& ident) override;
+    void load_from_value_tree();
 
 private:
 	const juce::String& reg_name;

@@ -3,7 +3,7 @@
 SettingsRegistry::SettingsRegistry(const juce::String& _reg_name) : reg_name(_reg_name) {
 	state.addListener(this);
 
-	if (!state.hasProperty("gen01_type")) {
+    if (!state.hasProperty("gen01_type")) {
 		state.setProperty("gen01_type", static_cast<int>(fmsmoov::GEN_TYPE::SINE), nullptr);
 	}
 	if (!state.hasProperty("gen02_type")) {
@@ -39,6 +39,9 @@ SettingsRegistry::SettingsRegistry(const juce::String& _reg_name) : reg_name(_re
 	if (!state.hasProperty("gen03_enable")) {
 		state.setProperty("gen03_enable", false, nullptr);
 	}
+    if (!state.hasProperty("all_gens_mute")) {
+        state.setProperty("all_gens_mute", false, nullptr);
+    }
 
 	update_atomics();
 }
@@ -63,6 +66,8 @@ void SettingsRegistry::update_atomics() {
 	gen01_enable.store(state.getProperty("gen01_enable", false));
 	gen02_enable.store(state.getProperty("gen02_enable", false));
 	gen03_enable.store(state.getProperty("gen03_enable", false));
+
+    all_gens_mute.store(state.getProperty("all_gens_mute", false));
 
 	
 }
@@ -118,4 +123,12 @@ void SettingsRegistry::valueTreePropertyChanged(juce::ValueTree& vt, const juce:
 	if (ident == juce::Identifier("gen03_enable")) {
 		gen03_enable.store(vt[ident]);
 	}
+
+    if (ident == juce::Identifier("all_gens_mute")) {
+        all_gens_mute.store(vt[ident]);
+    }
+}
+
+void SettingsRegistry::load_from_value_tree() {
+    update_atomics();
 }
