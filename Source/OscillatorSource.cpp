@@ -2,7 +2,7 @@
 
 namespace fmsmoov {
 
-OscillatorSource::OscillatorSource(SettingsRegistry& _settings_reg, juce::String& _component_name, uint32_t _num_channels) : 
+OscillatorSource::OscillatorSource(SettingsRegistry& _settings_reg, const juce::String& _component_name, uint32_t _num_channels) : 
     settings_reg(_settings_reg), 
     component_name(_component_name),
     num_channels(_num_channels) {

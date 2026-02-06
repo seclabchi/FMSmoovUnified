@@ -12,7 +12,7 @@ class NoiseGenerator :
 public:
     NoiseGenerator(SettingsRegistry& _settings_reg);
     virtual ~NoiseGenerator();
-    void NoiseGenerator::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) override;
+    void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) override;
 
 private:
     fmsmoov::GEN_TYPE type;
