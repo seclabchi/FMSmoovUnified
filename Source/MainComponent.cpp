@@ -1,5 +1,6 @@
 #include "MainComponent.h"
 
+#include "TestGeneratorWindow.h"
 #include "TestGeneratorGUI.h"
 
 //==============================================================================
@@ -162,23 +163,14 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex) {
         this->menuItemsChanged();
     }
     else if (menuItemID == 101) {
-
-        if (test_generator_dlg != nullptr) {
-            test_generator_dlg->toFront(true);
+        if (test_generator_window == nullptr) {
+            auto* content = new TestGeneratorGUI(*settings_reg);
+            test_generator_window = std::make_unique<TestGeneratorWindow>("FMSmoov Test Generator", content);
+            test_generator_window->on_close = [this]() {test_generator_window.reset(); };
+            content->on_done_clicked = [this]() {test_generator_window.reset(); };
         }
         else {
-            juce::DialogWindow::LaunchOptions options;
-
-            options.content.setOwned(new TestGeneratorGUI(*settings_reg));
-            options.dialogTitle = "FMSmoov Test Generator";
-            options.dialogBackgroundColour = getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId);
-            options.escapeKeyTriggersCloseButton = true;
-            options.useNativeTitleBar = true;
-            options.resizable = false;
-            options.useBottomRightCornerResizer = false;
-            test_generator_dlg.reset(options.create());
-            test_generator_dlg->setVisible(true);
-            test_generator_dlg->addComponentListener(this);
+            test_generator_window->toFront(true);
         }
     }
 }
@@ -199,9 +191,7 @@ void MainComponent::timerCallback() {
 }
 
 void MainComponent::componentBeingDeleted(juce::Component& component) {
-    if (&component == test_generator_dlg.get()) {
-        test_generator_dlg.release();
-    }
+    
 }
 
 void MainComponent::save_settings() {
@@ -259,4 +249,13 @@ void MainComponent::load_settings() {
 }
 
 void MainComponent::handleAsyncUpdate() {
+}
+
+void MainComponent::dump_settings_value_tree() {
+    for (int i = 0; i < settings_reg->state.getNumProperties(); i++) {
+        auto name = settings_reg->state.getPropertyName(i);
+        auto value = settings_reg->state.getProperty(name);
+
+        DBG(name + ": " + value);
+    }
 }

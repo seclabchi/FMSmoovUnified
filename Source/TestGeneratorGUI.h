@@ -4,6 +4,7 @@
 
 #include "TestGenGroup.h"
 #include "SettingsRegistry.h"
+#include "LightedToggleButtonStyle.h"
 
 class TestGeneratorGUI : public juce::Component, public juce::ValueTree::Listener
 {
@@ -13,13 +14,14 @@ class TestGeneratorGUI : public juce::Component, public juce::ValueTree::Listene
         void paint(juce::Graphics&) override;
         void resized() override;
         void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) override;
-        //void closeButtonPressed() override;
+        std::function<void()> on_done_clicked;
     private:
         juce::TextButton done_button{ "Done" };
         TestGenGroup* group_gen_01;
         TestGenGroup* group_gen_02;
         TestGenGroup* group_gen_03;
-        juce::TextButton button_gens_mute{ "MUTE ALL" };
+        LightedToggleButtonStyle lighted_toggle_style;
+        juce::ToggleButton button_gens_mute{ "MUTE ALL" };
 
         SettingsRegistry& settings_reg;
 

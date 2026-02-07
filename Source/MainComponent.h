@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 
 #include "SettingsRegistry.h"
+#include "TestGeneratorWindow.h"
 #include "TestGenerator.h"
 
 
@@ -60,7 +61,9 @@ private:
     void handleAsyncUpdate() override;
     
     std::unique_ptr<TestGenerator> test_generator;
-    std::unique_ptr<juce::DialogWindow> test_generator_dlg;
+    std::unique_ptr<TestGeneratorWindow> test_generator_window;
+
+    void dump_settings_value_tree();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

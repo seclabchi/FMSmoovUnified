@@ -52,6 +52,12 @@ namespace fmsmoov {
         float pink_b5{ 0.0f };
         float pink_b6{ 0.0f };
 
+        void prepare_brown_noise(double sample_rate);
+        float brown_z1{ 0.0f };
+        float brown_b0{ 0.0f };
+        float brown_b1{ 0.0f };
+        float brown_a1{ 0.0f };
+
     };
 
 } //namespace fmsmoov

@@ -9,13 +9,12 @@ TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_r
     group_gen_02 = new TestGenGroup("gen02", "GEN 02", settings_reg);
     group_gen_03 = new TestGenGroup("gen03", "GEN 03", settings_reg);
 
-    done_button.onClick = [this] {
-        juce::Logger::writeToLog("Done clicked");
+    done_button.onClick = [this]() {
+        juce::Logger::writeToLog("TestGeneratorGUI done clicked");
 
-        if (auto* dw = findParentComponentOfClass<juce::Component>()) {
-            dw->exitModalState(1);
+        if (on_done_clicked) {
+            on_done_clicked();
         }
-        //delete this;
     };
 
     button_gens_mute.onClick = [this] {
@@ -23,10 +22,10 @@ TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_r
         settings_reg.state.setProperty("all_gens_mute", gens_mute, nullptr);
     };
 
+    button_gens_mute.setLookAndFeel(&lighted_toggle_style);
     button_gens_mute.setToggleState(settings_reg.state.getProperty("all_gens_mute"), juce::dontSendNotification);
-    button_gens_mute.setClickingTogglesState(true);
-    button_gens_mute.setColour(juce::TextButton::buttonOnColourId, juce::Colours::lightpink);
-    button_gens_mute.setColour(juce::TextButton::buttonColourId, juce::Colours::lightblue);
+    //button_gens_mute.setClickingTogglesState(true);
+  
     addAndMakeVisible(button_gens_mute);
 
     group_gen_01->init(settings_reg.state.getProperty("gen01_type"),
@@ -61,10 +60,6 @@ TestGeneratorGUI::~TestGeneratorGUI() {
     delete group_gen_03;
 }
 
-//void TestGeneratorGUI::closeButtonPressed() {
-//    delete this;
-//}
-
 void TestGeneratorGUI::paint(juce::Graphics& g) {
     //g.fillAll(juce::Colours::red);
 }
@@ -84,7 +79,7 @@ void TestGeneratorGUI::resized() {
     fb_gens.performLayout(gen_area);
 
     /*
-     * Layout the done button
+     * Layout the buttons
      */
 
 
@@ -93,8 +88,8 @@ void TestGeneratorGUI::resized() {
     fb.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
     fb.alignContent = juce::FlexBox::AlignContent::center;
 
-    fb.items.add(juce::FlexItem(done_button).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
     fb.items.add(juce::FlexItem(button_gens_mute).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
+    fb.items.add(juce::FlexItem(done_button).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
 
     fb.performLayout(button_area);
 }

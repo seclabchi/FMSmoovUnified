@@ -15,7 +15,11 @@ OscillatorSource::OscillatorSource(SettingsRegistry& _settings_reg, const juce::
     osc = std::make_unique<juce::dsp::Oscillator<float>>();
     gain = std::make_unique<juce::dsp::Gain<float>>();
 
-    type.store((static_cast<fmsmoov::GEN_TYPE>((settings_reg.state.getProperty(gen_type_propname)), fmsmoov::GEN_TYPE::SINE)));
+    juce::ValueTree vt = settings_reg.state;
+
+    juce::var gen_type_val = vt.getProperty(gen_type_propname);
+
+    type.store(static_cast<fmsmoov::GEN_TYPE>((int)gen_type_val));
     freq.store((settings_reg.state.getProperty(frequency_propname, 440.0f)));
     ampl.store((settings_reg.state.getProperty(amplitude_propname, -12.0f)));
     
@@ -44,6 +48,8 @@ void OscillatorSource::prepareToPlay(int samplesPerBlockExpected, double sampleR
     gain->setGainDecibels(ampl.load());
 
     set_type(type.load());
+    prepare_brown_noise(sampleRate);
+
 }
 
 void OscillatorSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
@@ -110,6 +116,15 @@ void OscillatorSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
                 float pink = pink_b0 + pink_b1 + pink_b2 + pink_b3 + pink_b4 + pink_b5 + pink_b6 + noise_out * 0.5362f;
                 pink_b6 = noise_out * 0.115926f;
                 noise_out = pink * 0.11f; // Corrected scale for +/-1.0 range
+            }
+            else if (type == fmsmoov::GEN_TYPE::NOISE_BROWN) {
+                float brown_samp = brown_b0 * noise_out + brown_b1 * brown_z1 - brown_a1 * brown_z1;
+                brown_z1 = brown_samp;
+
+                noise_out = brown_samp * 120.0f;
+            }
+            else if (type == fmsmoov::GEN_TYPE::NOISE_BLUE) {
+
             }
             
             leftChannel[sample] = noise_out;
@@ -179,6 +194,16 @@ void OscillatorSource::valueTreePropertyChanged(juce::ValueTree& vt, const juce:
 
 void OscillatorSource::set_must_clear_buffer(bool _must_clear_buffer) {
     must_clear_buffer = _must_clear_buffer;
+}
+
+void OscillatorSource::prepare_brown_noise(double sample_rate) {
+    float fc = 10.0f;
+    float theta = 2.0f * juce::MathConstants<float>::pi * fc / sample_rate;
+    float gamma = cos(theta) / (1.0f + sin(theta));
+
+    brown_b0 = (1.0f - gamma) / 2.0f;
+    brown_b1 = brown_b0;
+    brown_a1 = -gamma;
 }
 
 } //namespace fmsmoov
