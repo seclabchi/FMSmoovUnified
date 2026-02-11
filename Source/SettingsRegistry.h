@@ -4,10 +4,13 @@
 
 #include "fmsmoov_types.h"
 
-class SettingsRegistry : public juce::ValueTree::Listener
+class SettingsRegistry : public juce::ValueTree::Listener, private juce::Timer
 {
 public:
-	juce::ValueTree state{ "SETTINGS" };
+	juce::ValueTree state{ "MAINAPP" };
+    juce::ValueTree device_setup{ "DEVICESETUP" };
+
+    std::atomic<bool> master_bypass{ false };
 
 	std::atomic<fmsmoov::GEN_TYPE> gen01_type { fmsmoov::GEN_TYPE::SINE };
 	std::atomic<fmsmoov::GEN_TYPE> gen02_type { fmsmoov::GEN_TYPE::SINE };
@@ -31,11 +34,19 @@ public:
 	virtual ~SettingsRegistry();
 
 	void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& ident) override;
-    void load_from_value_tree();
+    void flag_update();
+    void dump_settings();
+
+    void save_settings();
+    void load_settings();
 
 private:
 	const juce::String& reg_name;
+    juce::File app_data_dir;
+    juce::File settings_file;
 	void update_atomics();
+    std::atomic<bool> needs_update{ false };
+    void timerCallback() override;
 
 };
 

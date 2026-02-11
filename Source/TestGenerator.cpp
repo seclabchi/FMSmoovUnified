@@ -51,6 +51,8 @@ void TestGenerator::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
     if (should_update_gens.load()) {
         update_gens();
     }
+
+    bufferToFill.clearActiveBufferRegion();
     
     /* You must have a valid audio buffer from the parent, or this will just output garbage
      * which probably has the side effect of muting the output.

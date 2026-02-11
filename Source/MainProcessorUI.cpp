@@ -1,35 +1,28 @@
-#include "TestGeneratorGUI.h"
+#include "MainProcessorUI.h"
 
-TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg) {
+MainProcessorUI::MainProcessorUI(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg) {
     settings_reg.state.addListener(this);
 
-    addAndMakeVisible(done_button);
+    //group_gen_01 = new TestGenGroup("gen01", "GEN 01", settings_reg);
+    //group_gen_02 = new TestGenGroup("gen02", "GEN 02", settings_reg);
+    //group_gen_03 = new TestGenGroup("gen03", "GEN 03", settings_reg);
 
-    group_gen_01 = new TestGenGroup("gen01", "GEN 01", settings_reg);
-    group_gen_02 = new TestGenGroup("gen02", "GEN 02", settings_reg);
-    group_gen_03 = new TestGenGroup("gen03", "GEN 03", settings_reg);
-
-    done_button.onClick = [this]() {
-        juce::Logger::writeToLog("TestGeneratorGUI done clicked");
-
-        if (on_done_clicked) {
-            on_done_clicked();
-        }
+    button_master_bypass.onClick = [this] {
+        bool master_bypass = button_master_bypass.getToggleState();
+        settings_reg.state.setProperty("master_bypass", master_bypass, nullptr);
     };
 
-    button_gens_mute.onClick = [this] {
-        bool gens_mute = button_gens_mute.getToggleState();
-        settings_reg.state.setProperty("all_gens_mute", gens_mute, nullptr);
-    };
+    lighted_toggle_style.color_button_off = juce::Colours::lightgrey;
+    lighted_toggle_style.text_color_button_off = juce::Colours::black;
+    lighted_toggle_style.color_button_on = juce::Colours::red;
+    lighted_toggle_style.text_color_button_on = juce::Colours::white;
 
-    lighted_toggle_style.color_button_off = juce::Colours::lightgreen;
-    lighted_toggle_style.color_button_on = juce::Colours::lightpink;
-    button_gens_mute.setLookAndFeel(&lighted_toggle_style);
-    button_gens_mute.setToggleState(settings_reg.state.getProperty("all_gens_mute"), juce::dontSendNotification);
+    button_master_bypass.setLookAndFeel(&lighted_toggle_style);
+    button_master_bypass.setToggleState(settings_reg.state.getProperty("master_bypass"), juce::dontSendNotification);
+  
+    addAndMakeVisible(button_master_bypass);
 
-
-    addAndMakeVisible(button_gens_mute);
-
+    /*
     group_gen_01->init(settings_reg.state.getProperty("gen01_type"),
         settings_reg.state.getProperty("gen01_freq"),
         settings_reg.state.getProperty("gen01_ampl"),
@@ -50,28 +43,30 @@ TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_r
         settings_reg.state.getProperty("gen03_enable"));
 
     addAndMakeVisible(group_gen_03);
-
+    */
+    settings_reg.state.addListener(this);
     setSize(800, 400);
 }
 
-TestGeneratorGUI::~TestGeneratorGUI() {
+MainProcessorUI::~MainProcessorUI() {
     settings_reg.state.removeListener(this);
 
-    delete group_gen_01;
-    delete group_gen_02;
-    delete group_gen_03;
+    //delete group_gen_01;
+    //delete group_gen_02;
+    //delete group_gen_03;
 }
 
-void TestGeneratorGUI::paint(juce::Graphics& g) {
+void MainProcessorUI::paint(juce::Graphics& g) {
     //g.fillAll(juce::Colours::red);
 }
 
-void TestGeneratorGUI::resized() {
+void MainProcessorUI::resized() {
     auto area = getLocalBounds().reduced(10);
     auto button_area = area.removeFromBottom(32);
 
     auto gen_area = area.reduced(5);
 
+    /*
     juce::FlexBox fb_gens;
     fb_gens.flexDirection = juce::FlexBox::Direction::row;
     fb_gens.items.add(juce::FlexItem(*group_gen_01).withFlex(1.0).withMargin(5));
@@ -79,6 +74,7 @@ void TestGeneratorGUI::resized() {
     fb_gens.items.add(juce::FlexItem(*group_gen_03).withFlex(1.0).withMargin(5));
 
     fb_gens.performLayout(gen_area);
+    */
 
     /*
      * Layout the buttons
@@ -90,12 +86,11 @@ void TestGeneratorGUI::resized() {
     fb.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
     fb.alignContent = juce::FlexBox::AlignContent::center;
 
-    fb.items.add(juce::FlexItem(button_gens_mute).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
-    fb.items.add(juce::FlexItem(done_button).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
+    fb.items.add(juce::FlexItem(button_master_bypass).withWidth(120).withHeight(30).withMargin({ 0,8,0,0 }));
 
     fb.performLayout(button_area);
 }
 
-void TestGeneratorGUI::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
+void MainProcessorUI::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
 
 }

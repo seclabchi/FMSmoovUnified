@@ -6,22 +6,28 @@
 //==============================================================================
 MainComponent::MainComponent() {
 
-    app_data_dir = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory);
-    settings_file = app_data_dir.getChildFile("tonekids.com/fmsmoov/fmsmoov_settings.xml");
-
-    if (!settings_file.getParentDirectory().exists()) {
-        DBG("Settings directory does not exist. Creating...");
-        settings_file.getParentDirectory().createDirectory();
-    }
-
-    DBG("Connected to settings file " << settings_file.getFullPathName());
-
+    device_manager = std::make_unique<juce::AudioDeviceManager>();
+    audio_source_player = std::make_unique<juce::AudioSourcePlayer>();
+   
     const juce::String reg_name = "FMSmoov Settings Registry";
     settings_reg = std::make_unique<SettingsRegistry>(reg_name);
+
     settings_reg->state.addListener(this);
 
-    load_settings();
+    main_processor = std::make_unique<MainProcessor>(*settings_reg, NUM_CHANNELS);
     test_generator = std::make_unique<TestGenerator>(*settings_reg, NUM_CHANNELS);
+
+    if (juce::RuntimePermissions::isRequired(juce::RuntimePermissions::recordAudio))
+    {
+        juce::RuntimePermissions::request(juce::RuntimePermissions::recordAudio, [this](bool granted)
+            {
+                this->initialize_audio();
+            });
+    }
+    else
+    {
+        this->initialize_audio();
+    }
 
 #if JUCE_MAC
     juce::MenuBarModel::setMacMainMenu(this);
@@ -30,17 +36,14 @@ MainComponent::MainComponent() {
     addAndMakeVisible(menu_bar.get());
 #endif
 
-    deviceManager.initialiseWithDefaultDevices(2, 2);
+    main_proc_ui = std::make_unique<MainProcessorUI>(*settings_reg);
+    addAndMakeVisible(main_proc_ui.get());
 
-    audio_device_selector = std::make_unique<juce::AudioDeviceSelectorComponent>(
-        deviceManager,
-        2, 2,
-        2, 2,
-        false, false,
-        true, false
-    );
-
-    addAndMakeVisible(audio_device_selector.get());
+    addAndMakeVisible(label_sb_audio_input_device);
+    addAndMakeVisible(label_sb_audio_output_device);
+    addAndMakeVisible(label_sb_sample_rate);
+    addAndMakeVisible(label_sb_buffer_size);
+    update_status_bar();
 
     // Make sure you set the size of the component after
     // you add any child components.
@@ -48,31 +51,37 @@ MainComponent::MainComponent() {
     const uint32_t height = 768;
 
     setSize(width, height);
-
-    // Some platforms require permissions to open input channels so request that here
-    if (juce::RuntimePermissions::isRequired(juce::RuntimePermissions::recordAudio)
-        && !juce::RuntimePermissions::isGranted(juce::RuntimePermissions::recordAudio))
-    {
-        juce::RuntimePermissions::request(juce::RuntimePermissions::recordAudio,
-            [&](bool granted) { setAudioChannels(granted ? 2 : 0, 2); });
-    }
-    else
-    {
-        // Specify the number of input and output channels that we want to open
-        setAudioChannels(NUM_CHANNELS, NUM_CHANNELS);
-    }
-
-    startTimer(60000);
 }
 
 MainComponent::~MainComponent()
 {
     // This shuts down the audio device and clears the audio source.
-    shutdownAudio();
+    shutdown_audio();
+    device_manager->removeChangeListener(this);
+    main_proc_ui.reset();
+    settings_reg.reset();
+}
 
-    if (settings_file_needs_update) {
-        save_settings();
-    }
+void MainComponent::initialize_audio() {
+    device_manager->addChangeListener(this);
+    std::unique_ptr<juce::XmlElement> dm_loaded = settings_reg->device_setup.createXml();
+
+    device_manager->initialise(2, 2, dm_loaded.get(), false);
+
+    main_mixer = std::make_unique<juce::MixerAudioSource>();
+
+    main_mixer->addInputSource(main_processor.get(), false);
+    main_mixer->addInputSource(test_generator.get(), false);
+
+    audio_source_player->setSource(this);
+    device_manager->addAudioCallback(audio_source_player.get());
+
+}
+
+void MainComponent::shutdown_audio() {
+    main_mixer->removeAllInputs();
+    device_manager->removeAudioCallback(audio_source_player.get());
+    audio_source_player->setSource(nullptr);
 }
 
 //==============================================================================
@@ -86,20 +95,17 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
     // For more details, see the help for AudioProcessor::prepareToPlay()
 
-    test_generator->prepareToPlay(samplesPerBlockExpected, sampleRate);
+    main_mixer->prepareToPlay(samplesPerBlockExpected, sampleRate);
 
 }
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    // Your audio-processing code goes here!
+    if (settings_reg->master_bypass.load()) {
+        return;
+    }
 
-    // For more details, see the help for AudioProcessor::getNextAudioBlock()
-
-    // Right now we are not producing any data, in which case we need to clear the buffer
-    // (to prevent the output of random noise)
-    bufferToFill.clearActiveBufferRegion();
-    test_generator->getNextAudioBlock(bufferToFill);
+    main_mixer->getNextAudioBlock(bufferToFill);
 }
 
 void MainComponent::releaseResources()
@@ -109,6 +115,7 @@ void MainComponent::releaseResources()
 
     // For more details, see the help for AudioProcessor::releaseResources()
     test_generator->releaseResources();
+    main_processor->releaseResources();
 }
 
 //==============================================================================
@@ -127,17 +134,67 @@ void MainComponent::resized()
     // update their positions.
 
     auto area = getLocalBounds();
-    juce::Rectangle<int> selector_bounds(0, 0, 500, 250);
 
 #if !JUCE_MAC
     menu_bar->setBounds(area.removeFromTop(juce::LookAndFeel::getDefaultLookAndFeel().getDefaultMenuBarHeight()));
 #endif
+    
+    /* Layout the status bar along the bottom with the current audio device selections */
+    juce::FlexBox fb_sb;
+    fb_sb.flexDirection = juce::FlexBox::Direction::rowReverse;
+    fb_sb.alignItems = juce::FlexBox::AlignItems::flexEnd;
+    fb_sb.justifyContent = juce::FlexBox::JustifyContent::flexStart;
 
-    audio_device_selector->setBounds(selector_bounds.withPosition(5, menu_bar->getBottom() + 5));
+    auto font = label_sb_audio_input_device.getFont();
+    float text_width_input_device = font.getStringWidthFloat(label_sb_audio_input_device.getText()) + 10.0f;
+    float text_width_output_device = font.getStringWidthFloat(label_sb_audio_output_device.getText()) + 10.0f;
+    float text_width_sample_rate = font.getStringWidthFloat(label_sb_sample_rate.getText()) + 10.0f;
+    float text_width_buffer_size = font.getStringWidthFloat(label_sb_buffer_size.getText()) + 10.0f;
+
+
+    label_sb_audio_output_device.setColour(juce::Label::backgroundColourId, juce::Colours::black);
+    label_sb_audio_output_device.setColour(juce::Label::outlineColourId, juce::Colours::white);
+    label_sb_audio_input_device.setColour(juce::Label::backgroundColourId, juce::Colours::black);
+    label_sb_audio_input_device.setColour(juce::Label::outlineColourId, juce::Colours::white);
+    label_sb_sample_rate.setColour(juce::Label::backgroundColourId, juce::Colours::black);
+    label_sb_sample_rate.setColour(juce::Label::outlineColourId, juce::Colours::white);
+    label_sb_buffer_size.setColour(juce::Label::backgroundColourId, juce::Colours::black);
+    label_sb_buffer_size.setColour(juce::Label::outlineColourId, juce::Colours::white);
+
+    fb_sb.items.add(juce::FlexItem(label_sb_buffer_size).withWidth(text_width_buffer_size).withMinHeight(25.0f).withMargin({ 5, -1, 5, 5 }));
+    fb_sb.items.add(juce::FlexItem(label_sb_sample_rate).withWidth(text_width_sample_rate).withMinHeight(25.0f).withMargin({ 5, 0, 5, 5 }));
+    fb_sb.items.add(juce::FlexItem(label_sb_audio_output_device).withWidth(text_width_output_device).withMinHeight(25.0f).withMargin({ 5, 0, 5, 5 }));
+    fb_sb.items.add(juce::FlexItem(label_sb_audio_input_device).withWidth(text_width_input_device).withMinHeight(25.0f).withMargin({ 5, 0, 5, 5 }));
+
+    fb_sb.performLayout(area);
+    area.removeFromBottom(35); //TODO: figure out how to automatically get the height of the status bar
+    main_proc_ui->setBounds(area);
+}
+
+void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source) {
+    if (source == device_manager.get()) {
+        update_status_bar();
+
+        //ran into a problem if I grab the deviceManager state XML inside this callback,
+        //it was always popping back to the previous value.  So I need to trigger an
+        //async read on the updated state.
+
+        AsyncUpdater::triggerAsyncUpdate();
+    }
+}
+
+void MainComponent::handleAsyncUpdate() {
+
+    auto xml_ptr = device_manager->createStateXml();
+
+    if (nullptr != xml_ptr) {
+        settings_reg->device_setup.copyPropertiesAndChildrenFrom(juce::ValueTree::fromXml(*xml_ptr), nullptr);
+        settings_reg->save_settings();
+    }
 }
 
 juce::StringArray MainComponent::getMenuBarNames() {
-    return { "File", "Tools" };
+    return { "File", "Audio Devices", "Tools" };
 }
 
 juce::PopupMenu MainComponent::getMenuForIndex(int topLevelMenuIndex, const juce::String& menuName) {
@@ -145,10 +202,11 @@ juce::PopupMenu MainComponent::getMenuForIndex(int topLevelMenuIndex, const juce
     if (menuName == "File") {
         menu.addItem(1, "Quit");
     }
+    else if (menuName == "Audio Devices") {
+        menu.addItem(100, "Setup", true, false);
+    }
     else if (menuName == "Tools") {
-        // Use 'isToneOn' to show a checkmark in the menu
-        menu.addItem(100, "Test Tone", true, is_tone_on);
-        menu.addItem(101, "Test Generator", true, false);
+        menu.addItem(200, "Test Generator", true, false);
     }
     return menu;
 }
@@ -158,11 +216,15 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex) {
         juce::JUCEApplication::getInstance()->systemRequestedQuit();
     }
     else if (menuItemID == 100) {
-        is_tone_on = !is_tone_on;
-        // Important: this tells the bar to redraw so the checkmark updates!
-        this->menuItemsChanged();
+        if (audio_device_selector == nullptr) {
+            audio_device_selector = std::make_unique<AudioDeviceSelectorWindow>("FMSmoov Audio Device Selector", *device_manager);
+            audio_device_selector->on_close = [this]() {audio_device_selector.reset(); };
+        }
+        else {
+            audio_device_selector->toFront(true);
+        }
     }
-    else if (menuItemID == 101) {
+    else if (menuItemID == 200) {
         if (test_generator_window == nullptr) {
             auto* content = new TestGeneratorGUI(*settings_reg);
             test_generator_window = std::make_unique<TestGeneratorWindow>("FMSmoov Test Generator", content);
@@ -176,86 +238,26 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex) {
 }
 
 void MainComponent::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
-    DBG("Setting changed: " << p.toString());
-
-    if (p.toString().compare("last_saved")) {
-        settings_file_needs_update.store(true);
-    }
+    //we used to want to flag settings updates from here, but we're not going to do anything at the moment.
+    //the SettingsRegistry should be able to take care of itself
 }
 
-void MainComponent::timerCallback() {
-    if (settings_file_needs_update) {
-        save_settings();
-        settings_file_needs_update.store(false);
-    }
-}
+
 
 void MainComponent::componentBeingDeleted(juce::Component& component) {
     
 }
 
-void MainComponent::save_settings() {
-    DBG("setting save triggered");
+void MainComponent::update_status_bar() {
+    auto setup = device_manager->getAudioDeviceSetup();
 
-    juce::TemporaryFile temp_file(settings_file);
+    juce::String input_device = setup.inputDeviceName.isEmpty() ? "NO INPUT DEVICE" : setup.inputDeviceName;
+    juce::String output_device = setup.outputDeviceName.isEmpty() ? "NO OUTPUT DEVICE" : setup.outputDeviceName;
+    juce::String sample_rate = juce::String(setup.sampleRate);
+    juce::String buffer_size = juce::String(setup.bufferSize);
 
-    auto now = juce::Time::getCurrentTime();
-    auto hostname = juce::SystemStats::getComputerName();
-    auto os_name = juce::SystemStats::getOperatingSystemName();
-    auto mem_size = juce::SystemStats::getMemorySizeInMegabytes();
-    auto cpu_speed = juce::SystemStats::getCpuSpeedInMegahertz();
-    auto cpu_vendor = juce::SystemStats::getCpuVendor();
-    auto cpu_model = juce::SystemStats::getCpuModel();
-
-    settings_reg->state.setProperty("last_saved", now.toString(true, true, true, true), nullptr);
-    settings_reg->state.setProperty("hostname", hostname, nullptr);
-    settings_reg->state.setProperty("os_name", os_name, nullptr);
-    settings_reg->state.setProperty("mem_size", mem_size, nullptr);
-    settings_reg->state.setProperty("cpu_vendor", cpu_vendor, nullptr);
-    settings_reg->state.setProperty("cpu_model", cpu_model, nullptr);
-
-    {
-        auto out = std::unique_ptr<juce::FileOutputStream>(temp_file.getFile().createOutputStream());
-
-        if (out) {
-            auto xml = settings_reg->state.createXml();
-
-            if (xml) {
-                xml->writeTo(*out);
-                out->flush();
-            }
-        }
-    } /* Scope wrapper so that the stream is closed before the temp file swaps onto the real file */
-
-    if (!temp_file.overwriteTargetFileWithTemporary()) {
-        juce::Logger::writeToLog("Setting file save FAILED.  Couldn't overwrite target with temp file.");
-    }
-
-}
-
-void MainComponent::load_settings() {
-    if (settings_file.existsAsFile()) {
-        if (auto xml = juce::parseXML(settings_file)) {
-            settings_reg->state = juce::ValueTree::fromXml(*xml);
-
-            if (!(settings_reg->state.isValid())) {
-                DBG("SETTINGS REGISTRY IS INVALID.");
-            }
-            else {
-                settings_reg->load_from_value_tree();
-            }
-        }
-    }
-}
-
-void MainComponent::handleAsyncUpdate() {
-}
-
-void MainComponent::dump_settings_value_tree() {
-    for (int i = 0; i < settings_reg->state.getNumProperties(); i++) {
-        auto name = settings_reg->state.getPropertyName(i);
-        auto value = settings_reg->state.getProperty(name);
-
-        DBG(name + ": " + value);
-    }
+    label_sb_audio_input_device.setText("Input: " + input_device, juce::dontSendNotification);
+    label_sb_audio_output_device.setText("Output: " + output_device, juce::dontSendNotification);
+    label_sb_sample_rate.setText("Sample Rate: " + sample_rate, juce::dontSendNotification);
+    label_sb_buffer_size.setText("Buffer Size: " + buffer_size, juce::dontSendNotification);
 }

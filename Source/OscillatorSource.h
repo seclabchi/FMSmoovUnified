@@ -5,6 +5,8 @@
 #include "fmsmoov_types.h"
 #include "SettingsRegistry.h"
 
+#define BLUE_NOISE_LUT_SIZE 196608
+
 namespace fmsmoov {
 
     class OscillatorSource :
@@ -57,6 +59,10 @@ namespace fmsmoov {
         float brown_b0{ 0.0f };
         float brown_b1{ 0.0f };
         float brown_a1{ 0.0f };
+
+        void prepare_blue_noise();
+        float blue_noise_lut[BLUE_NOISE_LUT_SIZE];
+        uint32_t blue_noise_lut_index{ 0 };
 
     };
 

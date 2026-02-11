@@ -49,21 +49,25 @@ void OscillatorSource::prepareToPlay(int samplesPerBlockExpected, double sampleR
 
     set_type(type.load());
     prepare_brown_noise(sampleRate);
+    prepare_blue_noise();
+    blue_noise_lut_index = random.nextInt(BLUE_NOISE_LUT_SIZE);
 
 }
 
 void OscillatorSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
 
-    if (must_clear_buffer) {
-        bufferToFill.buffer->clear();
-    }
+    //if (must_clear_buffer) {
+    //    bufferToFill.buffer->clear();
+    //}
 
     tmp_buf.clear();
 
+    /*
     for (int i = 0; i < bufferToFill.numSamples; ++i) {
         jassert(std::isfinite(bufferToFill.buffer->getSample(0, bufferToFill.startSample + i)));
         jassert(std::abs(bufferToFill.buffer->getSample(0, bufferToFill.startSample + i)) < 1.0f);
     }
+    */
 
     juce::ScopedNoDenormals noDenormals;
 
@@ -115,20 +119,24 @@ void OscillatorSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
                 pink_b5 = -0.7616f * pink_b5 - noise_out * 0.0168980f;
                 float pink = pink_b0 + pink_b1 + pink_b2 + pink_b3 + pink_b4 + pink_b5 + pink_b6 + noise_out * 0.5362f;
                 pink_b6 = noise_out * 0.115926f;
-                noise_out = pink * 0.11f; // Corrected scale for +/-1.0 range
+                noise_out = gain_linear * pink * 0.11f; // Corrected scale for +/-1.0 range
             }
             else if (type == fmsmoov::GEN_TYPE::NOISE_BROWN) {
                 float brown_samp = brown_b0 * noise_out + brown_b1 * brown_z1 - brown_a1 * brown_z1;
                 brown_z1 = brown_samp;
 
-                noise_out = brown_samp * 120.0f;
+                noise_out = gain_linear * brown_samp * 120.0f;
             }
             else if (type == fmsmoov::GEN_TYPE::NOISE_BLUE) {
-
+                noise_out = gain_linear * blue_noise_lut[blue_noise_lut_index];
             }
             
             leftChannel[sample] = noise_out;
             rightChannel[sample] = noise_out;
+
+            if (++blue_noise_lut_index >= BLUE_NOISE_LUT_SIZE) {
+                blue_noise_lut_index = random.nextInt(BLUE_NOISE_LUT_SIZE);
+            }
         }
     }
 
@@ -204,6 +212,20 @@ void OscillatorSource::prepare_brown_noise(double sample_rate) {
     brown_b0 = (1.0f - gamma) / 2.0f;
     brown_b1 = brown_b0;
     brown_a1 = -gamma;
+}
+
+/*
+ * This gives +6 dB per octave, which is really purple noise, not blue
+ * TODO: Fix this and then add purple noise?
+ */
+void OscillatorSource::prepare_blue_noise() {
+    float last_sample = 0.0f;
+
+    for (int i = 0; i < BLUE_NOISE_LUT_SIZE; ++i) {
+        float white = (random.nextFloat() * 2.0f) - 1.0f;
+        blue_noise_lut[i] = white - last_sample;
+        last_sample = white;
+    }
 }
 
 } //namespace fmsmoov
