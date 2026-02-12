@@ -3,7 +3,7 @@
 AudioDeviceSelectorWindow::AudioDeviceSelectorWindow(const juce::String& name, juce::AudioDeviceManager& manager) :
     device_manager(manager),
     DocumentWindow(name, juce::Desktop::getInstance().getDefaultLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId),
-        juce::DocumentWindow::allButtons) {
+        juce::DocumentWindow::closeButton) {
 
     audio_device_selector = std::make_unique<juce::AudioDeviceSelectorComponent>(
         device_manager,
@@ -15,14 +15,14 @@ AudioDeviceSelectorWindow::AudioDeviceSelectorWindow(const juce::String& name, j
 
     const int preferred_width = 800;
     const int preferred_height = 600;
-
-    this->setSize(800, 600);
-
-    auto device_manager_setup = device_manager.getAudioDeviceSetup();
+    audio_device_selector->setSize(800, 600);
+    auto* main_window = juce::Desktop::getInstance().getComponent(0);
+    auto main_bounds = main_window->getScreenBounds();
+    this->centreAroundComponent(main_window, 800, 600);
 
     setContentNonOwned(audio_device_selector.get(), true);
-    setResizable(true, true);
-    setUsingNativeTitleBar(true);
+    setResizable(false, false);
+    setUsingNativeTitleBar(false);
     setVisible(true);
 }
 

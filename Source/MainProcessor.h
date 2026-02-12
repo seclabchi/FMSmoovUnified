@@ -18,7 +18,6 @@ public:
 
 
 private:
-    
     int current_block_size;
     float current_sample_rate;
     uint32_t num_channels;

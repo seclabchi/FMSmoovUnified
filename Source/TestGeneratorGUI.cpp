@@ -3,6 +3,8 @@
 TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg) {
     settings_reg.state.addListener(this);
 
+    on_done_clicked = nullptr;
+
     addAndMakeVisible(done_button);
 
     group_gen_01 = new TestGenGroup("gen01", "GEN 01", settings_reg);

@@ -47,10 +47,11 @@ MainComponent::MainComponent() {
 
     // Make sure you set the size of the component after
     // you add any child components.
-    const uint32_t width = 1024;
-    const uint32_t height = 768;
+    auto screen_area = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay()->userArea;
+    float main_win_width = 0.75 * (float)(screen_area.getWidth());
+    float main_win_height = 0.75 * (float)(screen_area.getHeight());
 
-    setSize(width, height);
+    setSize((int)main_win_width, (int)main_win_height);
 }
 
 MainComponent::~MainComponent()
@@ -67,6 +68,8 @@ void MainComponent::initialize_audio() {
     std::unique_ptr<juce::XmlElement> dm_loaded = settings_reg->device_setup.createXml();
 
     device_manager->initialise(2, 2, dm_loaded.get(), false);
+
+    main_loop_tmpbuf = std::make_unique<juce::AudioBuffer<float>>();
 
     main_mixer = std::make_unique<juce::MixerAudioSource>();
 
@@ -95,6 +98,11 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
     // For more details, see the help for AudioProcessor::prepareToPlay()
 
+    main_loop_tmpbuf->setSize(NUM_CHANNELS, samplesPerBlockExpected);
+    main_loop_tmpbuf_info.buffer = main_loop_tmpbuf.get();
+    main_loop_tmpbuf_info.startSample = 0;
+    main_loop_tmpbuf_info.numSamples = samplesPerBlockExpected;
+
     main_mixer->prepareToPlay(samplesPerBlockExpected, sampleRate);
 
 }
@@ -105,7 +113,21 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         return;
     }
 
-    main_mixer->getNextAudioBlock(bufferToFill);
+    main_loop_tmpbuf->clear();
+
+    main_mixer->getNextAudioBlock(main_loop_tmpbuf_info);
+
+    for (int chan = 0; chan < bufferToFill.buffer->getNumChannels(); ++chan) {
+        bufferToFill.buffer->addFrom(
+            chan,
+            bufferToFill.startSample,
+            *(main_loop_tmpbuf_info.buffer),
+            chan,
+            0,
+            bufferToFill.numSamples
+        );
+    }
+
 }
 
 void MainComponent::releaseResources()
@@ -229,7 +251,9 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex) {
             auto* content = new TestGeneratorGUI(*settings_reg);
             test_generator_window = std::make_unique<TestGeneratorWindow>("FMSmoov Test Generator", content);
             test_generator_window->on_close = [this]() {test_generator_window.reset(); };
-            content->on_done_clicked = [this]() {test_generator_window.reset(); };
+            content->on_done_clicked = [this]() { test_generator_window.reset(); };
+            test_generator_window->setSize(800, 600);
+            test_generator_window->centreAroundComponent(getTopLevelComponent(), 800, 600);
         }
         else {
             test_generator_window->toFront(true);

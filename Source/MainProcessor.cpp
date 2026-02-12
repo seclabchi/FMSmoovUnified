@@ -3,7 +3,8 @@
 MainProcessor::MainProcessor(SettingsRegistry& _settings_reg, uint32_t _num_channels) :
     settings_reg(_settings_reg), 
     num_channels(_num_channels) {
-    
+
+
     settings_reg.state.addListener(this);
 
     current_block_size = 0;

@@ -56,18 +56,7 @@ void OscillatorSource::prepareToPlay(int samplesPerBlockExpected, double sampleR
 
 void OscillatorSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) {
 
-    //if (must_clear_buffer) {
-    //    bufferToFill.buffer->clear();
-    //}
-
     tmp_buf.clear();
-
-    /*
-    for (int i = 0; i < bufferToFill.numSamples; ++i) {
-        jassert(std::isfinite(bufferToFill.buffer->getSample(0, bufferToFill.startSample + i)));
-        jassert(std::abs(bufferToFill.buffer->getSample(0, bufferToFill.startSample + i)) < 1.0f);
-    }
-    */
 
     juce::ScopedNoDenormals noDenormals;
 
@@ -102,8 +91,8 @@ void OscillatorSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
         gain->process(context);
     }
     else {
-        auto* leftChannel = bufferToFill.buffer->getWritePointer(0, bufferToFill.startSample);
-        auto* rightChannel = bufferToFill.buffer->getWritePointer(1, bufferToFill.startSample);
+        auto* leftChannel = tmp_buf.getWritePointer(0, bufferToFill.startSample);
+        auto* rightChannel = tmp_buf.getWritePointer(1, bufferToFill.startSample);
         float gain_linear = juce::Decibels::decibelsToGain(ampl.load());
 
         for (int sample = 0; sample < bufferToFill.numSamples; ++sample)
@@ -141,7 +130,7 @@ void OscillatorSource::getNextAudioBlock(const juce::AudioSourceChannelInfo& buf
     }
 
     for (int chan = 0; chan < bufferToFill.buffer->getNumChannels(); ++chan) {
-        bufferToFill.buffer->addFrom(chan,
+        bufferToFill.buffer->copyFrom(chan,
             bufferToFill.startSample,
             tmp_buf,
             chan,

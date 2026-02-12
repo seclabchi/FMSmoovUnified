@@ -48,10 +48,6 @@ void TestGenerator::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
         update_mixer();
     }
 
-    if (should_update_gens.load()) {
-        update_gens();
-    }
-
     bufferToFill.clearActiveBufferRegion();
     
     /* You must have a valid audio buffer from the parent, or this will just output garbage
@@ -140,17 +136,16 @@ void TestGenerator::update_mixer() {
  *  to clear the buffer in its getNextAudioBlock function.  You don't want to clear for the 0th
  *  buffer because that will destroy whatever was upstream of the mixer.
  * 
+ *  UPDATE:  this is no longer necessary since the test generator is now just part of the main
+ *  audio chain, so this component should ALWAYS clear the first buffer handed to it, since it
+ *  will get add-mixed properly upstream.
+ * 
  */
 void TestGenerator::add_source_if_needed(fmsmoov::OscillatorSource* src, bool mixer_is_running) {
     if (false == sources.contains(src)) {
         DBG("Adding source 0x" << juce::String::toHexString((juce::uint64) src));
-
-        if (true == mixer_is_running) {
-            src->prepareToPlay(current_block_size, current_sample_rate);
-        }
-
+        src->prepareToPlay(current_block_size, current_sample_rate);
         sources.add(src);
-        configure_source_clear_behavior();
         mixer->addInputSource(src, false);
     }
 }
@@ -158,22 +153,7 @@ void TestGenerator::add_source_if_needed(fmsmoov::OscillatorSource* src, bool mi
 void TestGenerator::remove_source_if_present(fmsmoov::OscillatorSource* src) {
     if (true == sources.contains(src)) {
         DBG("Removing source 0x" << juce::String::toHexString((juce::uint64)src));
-        sources.remove(sources.indexOf(src));
-        configure_source_clear_behavior();
         mixer->removeInputSource(src);
-    }
-}
-
-void TestGenerator::configure_source_clear_behavior() {
-    fmsmoov::OscillatorSource* src = nullptr;
-
-    for (uint32_t i = 0; i < sources.size(); ++i) {
-        src = sources[i];
-        if (0 == i) {
-            src->set_must_clear_buffer(false);
-            continue;
-        }
-
-        src->set_must_clear_buffer(true);
+        sources.remove(sources.indexOf(src));
     }
 }

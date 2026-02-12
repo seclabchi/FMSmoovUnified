@@ -69,7 +69,7 @@ SettingsRegistry::SettingsRegistry(const juce::String& _reg_name) : reg_name(_re
 
     state.addListener(this);
     device_setup.addListener(this);
-    startTimer(60000);
+    startTimer(5000);
 }
 
 SettingsRegistry::~SettingsRegistry() {
@@ -114,7 +114,7 @@ void SettingsRegistry::timerCallback() {
 }
 
 void SettingsRegistry::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& ident) {
-    juce::Logger::writeToLog("Setting changed: " + ident.toString());
+    //juce::Logger::writeToLog("Setting changed: " + ident.toString());
 
     /**************** MAIN PROCESSOR ****************/
     if (ident == juce::Identifier("master_bypass")) {

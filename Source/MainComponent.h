@@ -64,6 +64,8 @@ private:
     
     void handleAsyncUpdate() override;
 
+    std::unique_ptr<juce::AudioBuffer<float>> main_loop_tmpbuf;
+    juce::AudioSourceChannelInfo main_loop_tmpbuf_info;
     std::unique_ptr<MainProcessor> main_processor;
     
     std::unique_ptr<TestGenerator> test_generator;

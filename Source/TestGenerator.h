@@ -35,7 +35,6 @@ private:
     juce::Array<fmsmoov::OscillatorSource*> sources;
     void add_source_if_needed(fmsmoov::OscillatorSource* src, bool mixer_is_running = true);
     void remove_source_if_present(fmsmoov::OscillatorSource* src);
-    void configure_source_clear_behavior();
 
     uint32_t num_channels;
     SettingsRegistry& settings_reg;

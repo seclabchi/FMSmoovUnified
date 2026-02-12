@@ -11,7 +11,7 @@ TestGeneratorWindow::TestGeneratorWindow(const juce::String& name, juce::Compone
 }
 
 TestGeneratorWindow::~TestGeneratorWindow() {
-
+    
 }
 
 void TestGeneratorWindow::closeButtonPressed() {
