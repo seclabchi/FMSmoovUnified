@@ -11,7 +11,7 @@ namespace fmsmoov {
 
     class OscillatorSource :
         public juce::AudioSource,
-        public juce::ValueTree::Listener
+        public SettingsRegistry::TestGenSettingsListener
     {
     public:
         OscillatorSource(SettingsRegistry& _settings_reg, const juce::String& _component_name, uint32_t _num_channels);
@@ -19,8 +19,8 @@ namespace fmsmoov {
         void prepareToPlay(int samplesPerBlockExpected, double sampleRate) override;
         void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
         void releaseResources() override;
-        void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) override;
         void set_must_clear_buffer(bool _must_clear_buffer);
+        void gen_params_changed(const juce::String& gen_num) override;
 
     private:
         SettingsRegistry& settings_reg;

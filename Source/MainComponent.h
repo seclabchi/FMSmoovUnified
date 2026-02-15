@@ -21,11 +21,8 @@ class MainComponent :
     public juce::Component,
     public juce::AudioSource,
     public juce::MenuBarModel,
-    public juce::ValueTree::Listener,
     public juce::ComponentListener,
-    public juce::ChangeListener,
-    private juce::AsyncUpdater
-{
+    public juce::ChangeListener {
 public:
     //==============================================================================
     MainComponent();
@@ -39,7 +36,6 @@ public:
     //==============================================================================
     void paint (juce::Graphics& g) override;
     void resized() override;
-    void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) override;
     void componentBeingDeleted(juce::Component& component) override;
     void changeListenerCallback(juce::ChangeBroadcaster* source) override;
 protected:
@@ -62,8 +58,6 @@ private:
 
     std::unique_ptr<SettingsRegistry> settings_reg;
     
-    void handleAsyncUpdate() override;
-
     std::unique_ptr<juce::AudioBuffer<float>> main_loop_tmpbuf;
     juce::AudioSourceChannelInfo main_loop_tmpbuf_info;
     std::unique_ptr<MainProcessor> main_processor;
@@ -78,6 +72,17 @@ private:
     juce::Label label_sb_audio_output_device;
     juce::Label label_sb_sample_rate;
     juce::Label label_sb_buffer_size;
+
+    juce::TooltipWindow tooltipWindow;  //apparently this just lives for the life of the app globally
+
+    /* 
+     * This is the master animator pulse source for all of the lighted buttons in the system
+    */
+
+    juce::VBlankAnimatorUpdater vblank_animator_updater{ this };
+    std::unique_ptr<juce::Animator> shared_pulse;
+    float g_pulse_alpha = 0.0f;
+    void initialize_system_animation_pulse();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

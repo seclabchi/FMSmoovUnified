@@ -5,13 +5,14 @@ MainProcessor::MainProcessor(SettingsRegistry& _settings_reg, uint32_t _num_chan
     num_channels(_num_channels) {
 
 
-    settings_reg.state.addListener(this);
+    settings_reg.add_main_proc_settings_listener(this);
 
     current_block_size = 0;
     current_sample_rate = 0;
 }
 
 MainProcessor::~MainProcessor() {
+    settings_reg.remove_main_proc_settings_listener(this);
 }
 
 void MainProcessor::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
@@ -27,7 +28,7 @@ void MainProcessor::releaseResources() {
 
 }
 
-void MainProcessor::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
-    
+void MainProcessor::master_bypass_changed(bool master_bypass) {
+
 }
 

@@ -4,7 +4,7 @@ TestGenerator::TestGenerator(SettingsRegistry& _settings_reg, uint32_t _num_chan
     settings_reg(_settings_reg), 
     num_channels(_num_channels) {
     
-    settings_reg.state.addListener(this);
+    settings_reg.add_test_gen_settings_listener(this);
 
     tone_gen_01 = std::make_unique<fmsmoov::OscillatorSource>(settings_reg, juce::String("gen01"), num_channels);
     tone_gen_02 = std::make_unique<fmsmoov::OscillatorSource>(settings_reg, juce::String("gen02"), num_channels);
@@ -16,24 +16,24 @@ TestGenerator::TestGenerator(SettingsRegistry& _settings_reg, uint32_t _num_chan
 }
 
 TestGenerator::~TestGenerator() {
+    settings_reg.remove_test_gen_settings_listener(this);
     mixer->removeAllInputs();
 }
 
 void TestGenerator::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
     mixer->removeAllInputs();
 
-    if (settings_reg.gen01_enable) {
+    if (settings_reg.get_gen01_enable()) {
         add_source_if_needed(tone_gen_01.get());
     }
 
-    if (settings_reg.gen02_enable) {
+    if (settings_reg.get_gen02_enable()) {
         add_source_if_needed(tone_gen_02.get());
 
     }
 
-    if (settings_reg.gen03_enable) {
+    if (settings_reg.get_gen03_enable()) {
         add_source_if_needed(tone_gen_03.get());
-
     }
     
     mixer->prepareToPlay(samplesPerBlockExpected, sampleRate);
@@ -53,7 +53,7 @@ void TestGenerator::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
     /* You must have a valid audio buffer from the parent, or this will just output garbage
      * which probably has the side effect of muting the output.
      */
-    if (!settings_reg.all_gens_mute.load()) {
+    if (!settings_reg.get_generator_state()) {
         mixer->getNextAudioBlock(bufferToFill);
     }
 }
@@ -65,49 +65,72 @@ void TestGenerator::releaseResources() {
     mixer->releaseResources();
 }
 
-void TestGenerator::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
-    if (p == juce::Identifier("gen01_enable") ||
-        p == juce::Identifier("gen02_enable") ||
-        p == juce::Identifier("gen03_enable")) {
-        should_update_mixer.store(true);
-    }
+void TestGenerator::gen_params_changed(const juce::String& gen_num) {
 
-    if (p == juce::Identifier("gen01_freq") ||
-        p == juce::Identifier("gen02_freq") ||
-        p == juce::Identifier("gen03_freq") ||
-        p == juce::Identifier("gen01_ampl") ||
-        p == juce::Identifier("gen02_ampl") ||
-        p == juce::Identifier("gen03_ampl") ||
-        p == juce::Identifier("gen01_type") ||
-        p == juce::Identifier("gen02_type") ||
-        p == juce::Identifier("gen03_type")) {
-        should_update_gens.store(true);
-    }
-}
+    fmsmoov::GEN_TYPE new_type;
+    float new_freq;
+    float new_ampl;
+    bool new_enable;
+    
+    settings_reg.get_gen_params(gen_num, new_type, new_freq, new_ampl, new_enable);
 
-void TestGenerator::update_gens() {
-    DBG("TestGenerator::update_gens");
-    should_update_gens.store(false);
+    if (gen_num == "gen01") {
+        if (new_enable != sources.contains(tone_gen_01.get())) {
+            if (new_enable) {
+                add_source_if_needed(tone_gen_01.get());
+            }
+            else {
+                remove_source_if_present(tone_gen_01.get());
+            }
+            should_update_mixer.store(true);
+        }
+    }
+    else if (gen_num == "gen02") {
+        if (new_enable != sources.contains(tone_gen_02.get())) {
+            if (new_enable) {
+                add_source_if_needed(tone_gen_02.get());
+            }
+            else {
+                remove_source_if_present(tone_gen_02.get());
+            }
+            should_update_mixer.store(true);
+        }
+    }
+    else if (gen_num == "gen03") {
+        if (new_enable != sources.contains(tone_gen_03.get())) {
+            if (new_enable) {
+                add_source_if_needed(tone_gen_03.get());
+            }
+            else {
+                remove_source_if_present(tone_gen_03.get());
+            }
+            should_update_mixer.store(true);
+        }
+    }
+    else {
+        //invalid gen num
+        jassert(false);
+    }
 }
 
 void TestGenerator::update_mixer() {
     DBG("TestGenerator::update_mixer");
 
-    if (settings_reg.gen01_enable.load()) {
+    if (settings_reg.get_gen01_enable()) {
         add_source_if_needed(tone_gen_01.get());
     }
     else {
         remove_source_if_present(tone_gen_01.get());
     }
 
-    if (settings_reg.gen02_enable.load()) {
+    if (settings_reg.get_gen02_enable()) {
         add_source_if_needed(tone_gen_02.get());
     }
     else {
         remove_source_if_present(tone_gen_02.get());
     }
 
-    if (settings_reg.gen03_enable.load()) {
+    if (settings_reg.get_gen03_enable()) {
         add_source_if_needed(tone_gen_03.get());
     }
     else {

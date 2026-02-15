@@ -15,21 +15,25 @@ OscillatorSource::OscillatorSource(SettingsRegistry& _settings_reg, const juce::
     osc = std::make_unique<juce::dsp::Oscillator<float>>();
     gain = std::make_unique<juce::dsp::Gain<float>>();
 
-    juce::ValueTree vt = settings_reg.state;
+    fmsmoov::GEN_TYPE init_type;
+    float init_freq;
+    float init_ampl;
+    bool init_enable;
 
-    juce::var gen_type_val = vt.getProperty(gen_type_propname);
+    settings_reg.get_gen_params(component_name, init_type, init_freq, init_ampl, init_enable);
 
-    type.store(static_cast<fmsmoov::GEN_TYPE>((int)gen_type_val));
-    freq.store((settings_reg.state.getProperty(frequency_propname, 440.0f)));
-    ampl.store((settings_reg.state.getProperty(amplitude_propname, -12.0f)));
+    type.store(init_type);
+    freq.store(init_freq);
+    ampl.store(init_ampl);
     
-    settings_reg.state.addListener(this);
+    settings_reg.add_test_gen_settings_listener(this);
 
     DBG("This: " << (intptr_t)this);
     DBG("As AudioSource: " << (intptr_t)static_cast<juce::AudioSource*>(this));
 }
 
 OscillatorSource::~OscillatorSource() {
+    settings_reg.remove_test_gen_settings_listener(this);
 }
 
 void OscillatorSource::prepareToPlay(int samplesPerBlockExpected, double sampleRate) {
@@ -175,20 +179,6 @@ void OscillatorSource::releaseResources() {
     //delete tmp_buf;
 }
 
-void OscillatorSource::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& ident) {
-    if (!ident.toString().compare(gen_type_propname)) {
-        type.store(static_cast<fmsmoov::GEN_TYPE>((int)vt[ident]));
-    }
-
-    if (!ident.toString().compare(frequency_propname)) {
-        freq.store(vt[ident]);
-    }
-
-    if (!ident.toString().compare(amplitude_propname)) {
-        ampl.store(vt[ident]);
-    }
-}
-
 void OscillatorSource::set_must_clear_buffer(bool _must_clear_buffer) {
     must_clear_buffer = _must_clear_buffer;
 }
@@ -214,6 +204,21 @@ void OscillatorSource::prepare_blue_noise() {
         float white = (random.nextFloat() * 2.0f) - 1.0f;
         blue_noise_lut[i] = white - last_sample;
         last_sample = white;
+    }
+}
+
+void OscillatorSource::gen_params_changed(const juce::String& gen_num) {
+    if (gen_num == component_name) {
+        fmsmoov::GEN_TYPE changed_type;
+        float changed_freq;
+        float changed_ampl;
+        bool changed_enable;
+
+        settings_reg.get_gen_params(gen_num, changed_type, changed_freq, changed_ampl, changed_enable);
+
+        type.store(changed_type);
+        freq.store(changed_freq);
+        ampl.store(changed_ampl);
     }
 }
 

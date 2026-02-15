@@ -12,8 +12,6 @@ MainComponent::MainComponent() {
     const juce::String reg_name = "FMSmoov Settings Registry";
     settings_reg = std::make_unique<SettingsRegistry>(reg_name);
 
-    settings_reg->state.addListener(this);
-
     main_processor = std::make_unique<MainProcessor>(*settings_reg, NUM_CHANNELS);
     test_generator = std::make_unique<TestGenerator>(*settings_reg, NUM_CHANNELS);
 
@@ -109,7 +107,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (settings_reg->master_bypass.load()) {
+    if (settings_reg->get_master_bypass()) {
         return;
     }
 
@@ -196,22 +194,6 @@ void MainComponent::resized()
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source) {
     if (source == device_manager.get()) {
         update_status_bar();
-
-        //ran into a problem if I grab the deviceManager state XML inside this callback,
-        //it was always popping back to the previous value.  So I need to trigger an
-        //async read on the updated state.
-
-        AsyncUpdater::triggerAsyncUpdate();
-    }
-}
-
-void MainComponent::handleAsyncUpdate() {
-
-    auto xml_ptr = device_manager->createStateXml();
-
-    if (nullptr != xml_ptr) {
-        settings_reg->device_setup.copyPropertiesAndChildrenFrom(juce::ValueTree::fromXml(*xml_ptr), nullptr);
-        settings_reg->save_settings();
     }
 }
 
@@ -261,13 +243,6 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex) {
     }
 }
 
-void MainComponent::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
-    //we used to want to flag settings updates from here, but we're not going to do anything at the moment.
-    //the SettingsRegistry should be able to take care of itself
-}
-
-
-
 void MainComponent::componentBeingDeleted(juce::Component& component) {
     
 }
@@ -284,4 +259,25 @@ void MainComponent::update_status_bar() {
     label_sb_audio_output_device.setText("Output: " + output_device, juce::dontSendNotification);
     label_sb_sample_rate.setText("Sample Rate: " + sample_rate, juce::dontSendNotification);
     label_sb_buffer_size.setText("Buffer Size: " + buffer_size, juce::dontSendNotification);
+}
+
+void MainComponent::initialize_system_animation_pulse() {
+    shared_pulse = std::make_unique<juce::Animator>(
+        juce::ValueAnimatorBuilder()
+        .withDurationMs(1000)
+        .runningInfinitely()
+        .withEasing([](double p) {
+            return (std::sin(p * juce::MathConstants<double>::twoPi) + 1.0) * 0.5;
+            })
+        .withValueChangedCallback([this](double v) {
+            g_pulse_alpha = (float)v;
+            // Tell ALL buttons to repaint at the same time
+            //button1.repaint();
+            //button2.repaint();
+            //button3.repaint();
+            })
+        .build()
+    );
+    vblank_animator_updater.addAnimator(*shared_pulse);
+    shared_pulse->start();
 }

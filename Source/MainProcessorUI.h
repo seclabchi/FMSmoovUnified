@@ -3,21 +3,23 @@
 #include <JuceHeader.h>
 #include "SettingsRegistry.h"
 #include "LightedToggleButtonStyle.h"
+#include "LightedButton.h"
 
-class MainProcessorUI : public juce::Component, public juce::ValueTree::Listener
+class MainProcessorUI : public juce::Component, public SettingsRegistry::MainProcSettingsListener
 {
     public:
         MainProcessorUI(SettingsRegistry& _settings_reg);
         virtual ~MainProcessorUI();
         void paint(juce::Graphics&) override;
         void resized() override;
-        void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) override;
-    private:
-        //TestGenGroup* group_gen_01;
-        //TestGenGroup* group_gen_02;
-        //TestGenGroup* group_gen_03;
+        void master_bypass_changed(bool master_bypass) override;
+        void generator_state_changed(bool mute_all_gens) override {};
+        void processor_bypass_changed(bool mute_processor) override {};
+private:
         LightedToggleButtonStyle lighted_toggle_style;
-        juce::ToggleButton button_master_bypass{ "MASTER BYPASS" };
+        fmsmoov::LightedButton button_master_bypass{ "MASTER BYPASS" };
+        fmsmoov::LightedButton  button_generator_state{ "GENERATOR ON" };
+        fmsmoov::LightedButton  button_processor_bypass{ "PROCESSOR BYPASS" };
 
         SettingsRegistry& settings_reg;
 

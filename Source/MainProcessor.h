@@ -4,7 +4,7 @@
 
 #include "SettingsRegistry.h"
 
-class MainProcessor : public juce::AudioSource, public juce::ValueTree::Listener
+class MainProcessor : public juce::AudioSource, public SettingsRegistry::MainProcSettingsListener
 {
 public:
     MainProcessor(SettingsRegistry& _settings_reg, uint32_t _num_channels);
@@ -14,8 +14,9 @@ public:
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
 
-    void valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) override;
-
+    void master_bypass_changed(bool master_bypass) override;
+    void generator_state_changed(bool mute_all_gens) override {};
+    void processor_bypass_changed(bool mute_processor) override {};
 
 private:
     int current_block_size;

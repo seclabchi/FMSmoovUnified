@@ -1,16 +1,26 @@
 #include "MainProcessorUI.h"
 
-MainProcessorUI::MainProcessorUI(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg) {
-    settings_reg.state.addListener(this);
+#define TOOLTIP_BUTTON_MASTER_BYPASS "Bypass entire FMSmoov Toolchain.  Raw in-to-out."
+#define TOOLTIP_BUTTON_GENERATOR_STATE "Enable the test tone generator."
+#define TOOLTIP_BUTTON_PROCESSOR_BYPASS "Disable the main processor chain."
 
-    //group_gen_01 = new TestGenGroup("gen01", "GEN 01", settings_reg);
-    //group_gen_02 = new TestGenGroup("gen02", "GEN 02", settings_reg);
-    //group_gen_03 = new TestGenGroup("gen03", "GEN 03", settings_reg);
+MainProcessorUI::MainProcessorUI(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg) {
+    settings_reg.add_main_proc_settings_listener(this);
 
     button_master_bypass.onClick = [this] {
         bool master_bypass = button_master_bypass.getToggleState();
-        settings_reg.state.setProperty("master_bypass", master_bypass, nullptr);
+        settings_reg.set_master_bypass(master_bypass);
     };
+
+    button_generator_state.onClick = [this] {
+        bool generator_state = button_generator_state.getToggleState();
+        settings_reg.set_generator_state(generator_state);
+        };
+
+    button_master_bypass.onClick = [this] {
+        bool processor_bypass = button_processor_bypass.getToggleState();
+        settings_reg.set_processor_bypass(processor_bypass);
+        };
 
     lighted_toggle_style.color_button_off = juce::Colours::lightgrey;
     lighted_toggle_style.text_color_button_off = juce::Colours::black;
@@ -18,42 +28,28 @@ MainProcessorUI::MainProcessorUI(SettingsRegistry& _settings_reg) : settings_reg
     lighted_toggle_style.text_color_button_on = juce::Colours::white;
 
     button_master_bypass.setLookAndFeel(&lighted_toggle_style);
-    button_master_bypass.setToggleState(settings_reg.state.getProperty("master_bypass"), juce::dontSendNotification);
+    button_master_bypass.setTooltip(TOOLTIP_BUTTON_MASTER_BYPASS);
+    button_master_bypass.setToggleState(settings_reg.get_master_bypass(), juce::dontSendNotification);
   
     addAndMakeVisible(button_master_bypass);
 
-    /*
-    group_gen_01->init(settings_reg.state.getProperty("gen01_type"),
-        settings_reg.state.getProperty("gen01_freq"),
-        settings_reg.state.getProperty("gen01_ampl"),
-        settings_reg.state.getProperty("gen01_enable"));
+    button_generator_state.setLookAndFeel(&lighted_toggle_style);
+    button_generator_state.setTooltip(TOOLTIP_BUTTON_GENERATOR_STATE);
+    button_generator_state.setToggleState(settings_reg.get_generator_state(), juce::dontSendNotification);
 
-    addAndMakeVisible(group_gen_01);
+    addAndMakeVisible(button_generator_state);
 
-    group_gen_02->init(settings_reg.state.getProperty("gen02_type"),
-        settings_reg.state.getProperty("gen02_freq"),
-        settings_reg.state.getProperty("gen02_ampl"),
-        settings_reg.state.getProperty("gen02_enable"));
+    button_processor_bypass.setLookAndFeel(&lighted_toggle_style);
+    button_processor_bypass.setTooltip(TOOLTIP_BUTTON_PROCESSOR_BYPASS);
+    button_processor_bypass.setToggleState(settings_reg.get_processor_bypass(), juce::dontSendNotification);
 
-    addAndMakeVisible(group_gen_02);
+    addAndMakeVisible(button_processor_bypass);
 
-    group_gen_03->init(settings_reg.state.getProperty("gen03_type"),
-        settings_reg.state.getProperty("gen03_freq"),
-        settings_reg.state.getProperty("gen03_ampl"),
-        settings_reg.state.getProperty("gen03_enable"));
-
-    addAndMakeVisible(group_gen_03);
-    */
-    settings_reg.state.addListener(this);
     setSize(800, 400);
 }
 
 MainProcessorUI::~MainProcessorUI() {
-    settings_reg.state.removeListener(this);
-
-    //delete group_gen_01;
-    //delete group_gen_02;
-    //delete group_gen_03;
+    settings_reg.remove_main_proc_settings_listener(this);
 }
 
 void MainProcessorUI::paint(juce::Graphics& g) {
@@ -67,30 +63,21 @@ void MainProcessorUI::resized() {
     auto gen_area = area.reduced(5);
 
     /*
-    juce::FlexBox fb_gens;
-    fb_gens.flexDirection = juce::FlexBox::Direction::row;
-    fb_gens.items.add(juce::FlexItem(*group_gen_01).withFlex(1.0).withMargin(5));
-    fb_gens.items.add(juce::FlexItem(*group_gen_02).withFlex(1.0).withMargin(5));
-    fb_gens.items.add(juce::FlexItem(*group_gen_03).withFlex(1.0).withMargin(5));
-
-    fb_gens.performLayout(gen_area);
-    */
-
-    /*
      * Layout the buttons
      */
-
 
     juce::FlexBox fb;
     fb.flexDirection = juce::FlexBox::Direction::row;
     fb.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
     fb.alignContent = juce::FlexBox::AlignContent::center;
 
-    fb.items.add(juce::FlexItem(button_master_bypass).withWidth(120).withHeight(30).withMargin({ 0,8,0,0 }));
+    fb.items.add(juce::FlexItem(button_master_bypass).withWidth(150).withHeight(30).withMargin({ 0,8,0,0 }));
+    fb.items.add(juce::FlexItem(button_processor_bypass).withWidth(150).withHeight(30).withMargin({ 0,8,0,0 }));
+    fb.items.add(juce::FlexItem(button_generator_state).withWidth(150).withHeight(30).withMargin({ 0,8,0,0 }));
 
     fb.performLayout(button_area);
 }
 
-void MainProcessorUI::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
+void MainProcessorUI::master_bypass_changed(bool master_bypass) {
 
 }

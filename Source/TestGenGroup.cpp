@@ -46,25 +46,34 @@ TestGenGroup::TestGenGroup(const juce::String& _component_name, const juce::Stri
         gen_type.addItem(name, static_cast<int>(type));
     }
 
-    gen_type_value.referTo(settings_reg.state.getPropertyAsValue(gen_type_propname, nullptr));
-    gen_type.getSelectedIdAsValue().referTo(gen_type_value);
-    frequency.getValueObject().referTo(settings_reg.state.getPropertyAsValue(frequency_propname, nullptr));
-    amplitude.getValueObject().referTo(settings_reg.state.getPropertyAsValue(amplitude_propname, nullptr));
-    enabled.getToggleStateValue().referTo(settings_reg.state.getPropertyAsValue(enable_propname, nullptr));
+    //gen_type_value.referTo(settings_reg.state.getPropertyAsValue(gen_type_propname, nullptr));
+    //gen_type.getSelectedIdAsValue().referTo(gen_type_value);
 
-    /* We just need to manually notify one of the generator properties, because this will trigger a refresh of
-     * all of the generator atomics for the audio loop.
-     */
+    fmsmoov::GEN_TYPE type;
+    float freq;
+    float ampl;
+    bool enable;
 
-    settings_reg.state.sendPropertyChangeMessage(frequency_propname);
+    settings_reg.get_gen_params(_component_name, type, freq, ampl, enable);
+    this->init(type, freq, ampl, enable);
+    
+    type_combo_box_wire = settings_reg.create_combo_box_attachment(gen_type_propname, gen_type);
+    frequency_slider_wire = settings_reg.create_slider_attachment(frequency_propname, frequency);
+    amplitude_slider_wire = settings_reg.create_slider_attachment(amplitude_propname, amplitude);
+    enable_toggle_button_wire = settings_reg.create_toggle_button_attachment(enable_propname, enabled);
+
+    //frequency.getValueObject().referTo(settings_reg.state.getPropertyAsValue(frequency_propname, nullptr));
+    //amplitude.getValueObject().referTo(settings_reg.state.getPropertyAsValue(amplitude_propname, nullptr));
+    //enabled.getToggleStateValue().referTo(settings_reg.state.getPropertyAsValue(enable_propname, nullptr));
+
 }
 
 TestGenGroup::~TestGenGroup() {
 
 }
 
-void TestGenGroup::init(int type, float freq, float ampl, bool enable) {
-    gen_type.setSelectedId(type, juce::NotificationType::dontSendNotification);
+void TestGenGroup::init(fmsmoov::GEN_TYPE type, float freq, float ampl, bool enable) {
+    gen_type.setSelectedId(static_cast<int>(type), juce::NotificationType::dontSendNotification);
     frequency.setValue(freq, juce::NotificationType::dontSendNotification);
     amplitude.setValue(ampl, juce::NotificationType::dontSendNotification);
     enabled.setToggleState(enable, juce::NotificationType::dontSendNotification);

@@ -1,7 +1,7 @@
 #include "TestGeneratorGUI.h"
 
 TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg) {
-    settings_reg.state.addListener(this);
+    settings_reg.add_test_gen_settings_listener(this);
 
     on_done_clicked = nullptr;
 
@@ -19,45 +19,15 @@ TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_r
         }
     };
 
-    button_gens_mute.onClick = [this] {
-        bool gens_mute = button_gens_mute.getToggleState();
-        settings_reg.state.setProperty("all_gens_mute", gens_mute, nullptr);
-    };
-
-    lighted_toggle_style.color_button_off = juce::Colours::lightgreen;
-    lighted_toggle_style.color_button_on = juce::Colours::lightpink;
-    button_gens_mute.setLookAndFeel(&lighted_toggle_style);
-    button_gens_mute.setToggleState(settings_reg.state.getProperty("all_gens_mute"), juce::dontSendNotification);
-
-
-    addAndMakeVisible(button_gens_mute);
-
-    group_gen_01->init(settings_reg.state.getProperty("gen01_type"),
-        settings_reg.state.getProperty("gen01_freq"),
-        settings_reg.state.getProperty("gen01_ampl"),
-        settings_reg.state.getProperty("gen01_enable"));
-
     addAndMakeVisible(group_gen_01);
-
-    group_gen_02->init(settings_reg.state.getProperty("gen02_type"),
-        settings_reg.state.getProperty("gen02_freq"),
-        settings_reg.state.getProperty("gen02_ampl"),
-        settings_reg.state.getProperty("gen02_enable"));
-
     addAndMakeVisible(group_gen_02);
-
-    group_gen_03->init(settings_reg.state.getProperty("gen03_type"),
-        settings_reg.state.getProperty("gen03_freq"),
-        settings_reg.state.getProperty("gen03_ampl"),
-        settings_reg.state.getProperty("gen03_enable"));
-
     addAndMakeVisible(group_gen_03);
 
     setSize(800, 400);
 }
 
 TestGeneratorGUI::~TestGeneratorGUI() {
-    settings_reg.state.removeListener(this);
+    settings_reg.remove_test_gen_settings_listener(this);
 
     delete group_gen_01;
     delete group_gen_02;
@@ -92,12 +62,12 @@ void TestGeneratorGUI::resized() {
     fb.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
     fb.alignContent = juce::FlexBox::AlignContent::center;
 
-    fb.items.add(juce::FlexItem(button_gens_mute).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
     fb.items.add(juce::FlexItem(done_button).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
 
     fb.performLayout(button_area);
 }
 
-void TestGeneratorGUI::valueTreePropertyChanged(juce::ValueTree& vt, const juce::Identifier& p) {
+void TestGeneratorGUI::gen_params_changed(const juce::String& gen_num) {
 
 }
+
