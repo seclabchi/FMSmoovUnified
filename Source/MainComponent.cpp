@@ -50,6 +50,7 @@ MainComponent::MainComponent() {
     float main_win_height = 0.75 * (float)(screen_area.getHeight());
 
     setSize((int)main_win_width, (int)main_win_height);
+    button_light_pulse_source->getInstance()->init(settings_reg.get(), *this);
 }
 
 MainComponent::~MainComponent()
@@ -262,22 +263,5 @@ void MainComponent::update_status_bar() {
 }
 
 void MainComponent::initialize_system_animation_pulse() {
-    shared_pulse = std::make_unique<juce::Animator>(
-        juce::ValueAnimatorBuilder()
-        .withDurationMs(1000)
-        .runningInfinitely()
-        .withEasing([](double p) {
-            return (std::sin(p * juce::MathConstants<double>::twoPi) + 1.0) * 0.5;
-            })
-        .withValueChangedCallback([this](double v) {
-            g_pulse_alpha = (float)v;
-            // Tell ALL buttons to repaint at the same time
-            //button1.repaint();
-            //button2.repaint();
-            //button3.repaint();
-            })
-        .build()
-    );
-    vblank_animator_updater.addAnimator(*shared_pulse);
-    shared_pulse->start();
+    
 }

@@ -1,26 +1,18 @@
 #include "LightedButton.h"
+#include "ButtonLightPulseSource.h"
 
 namespace fmsmoov {
 
-    LightedButton::LightedButton(const juce::String& label) : juce::TextButton(label)
-    {        
-        pulse_animator = std::make_unique<juce::Animator>(
-            juce::ValueAnimatorBuilder()
-            .withDurationMs(500)
-            .withEasing([](auto progress) {
-                // Map 0->1 progress to 0->1->0 pulse using a sine wave
-                return (std::sin(progress * juce::MathConstants<double>::twoPi - juce::MathConstants<double>::halfPi) + 1.0) / 2.0;
-                })
-            .runningInfinitely()
-            .withValueChangedCallback([this](auto value) {
-                pulseAlpha = (float)value;
-                repaint();
-                })
-            .build()
-        );
-
+    LightedButton::LightedButton(const juce::String& label, juce::Colour _base_color,
+        juce::Colour _off_text_color, juce::Colour _on_text_color) : juce::TextButton(label), base_color(_base_color),
+        off_text_color(_off_text_color), on_text_color(_on_text_color)
+    {
+        v_blank_attachment = std::make_unique<juce::VBlankAttachment>(this, [this] {
+            repaint();
+            });
         setClickingTogglesState(true);
-
+        this->setColour(juce::TextButton::textColourOnId, on_text_color);
+        this->setColour(juce::TextButton::textColourOffId, off_text_color);
     }
 
     LightedButton::~LightedButton() {
@@ -34,6 +26,7 @@ namespace fmsmoov {
     void LightedButton::paintButton(juce::Graphics & g, bool isMouseOver, bool isButtonDown) {
         auto bounds = getLocalBounds().toFloat().reduced(2.0f);
         auto cornerSize = 6.0f;
+        float global_alpha = ButtonLightPulseSource::getInstance()->get_vblank_time();
 
         // 1. Draw the "Off" or "Base" background
         g.setColour(findColour(juce::TextButton::buttonColourId));
@@ -43,20 +36,19 @@ namespace fmsmoov {
         if (getToggleState())
         {
             // Use pulseAlpha to change brightness or opacity
-            auto glowColor = juce::Colours::cyan.withAlpha(0.3f + (0.7f * pulseAlpha));
+            auto glowColor = base_color.withAlpha(0.3f + (0.7f * global_alpha));
 
             g.setColour(glowColor);
             g.fillRoundedRectangle(bounds, cornerSize);
 
             // Optional: Draw a bright border that pulses too
-            g.setColour(juce::Colours::white.withAlpha(pulseAlpha));
+            g.setColour(juce::Colours::white.withAlpha(global_alpha));
             g.drawRoundedRectangle(bounds, cornerSize, 2.0f);
+            g.setColour(findColour(juce::TextButton::textColourOnId));
         }
-
-        // 3. Draw the Text (optional: JUCE can do this for you if you don't override)
-        // Since we inherited from TextButton, we can just call the base text drawer
-        // but usually, you'd just draw it manually here for full control:
-        g.setColour(findColour(juce::TextButton::textColourOnId));
+        else {
+            g.setColour(findColour(juce::TextButton::textColourOffId));
+        }
 
 
         auto font = getLookAndFeel().getTextButtonFont(*this, getHeight());
@@ -67,12 +59,10 @@ namespace fmsmoov {
 
     void LightedButton::update_animation_state() {
         if (getToggleState()) {
-            updater.addAnimator(*pulse_animator);
-            pulse_animator->start();
+            //pulse_animator->start();
         }
         else {
-            updater.removeAnimator(*pulse_animator);
-            pulseAlpha = 0.0f;
+            //pulseAlpha = 0.0f;
         }
         repaint();
     }

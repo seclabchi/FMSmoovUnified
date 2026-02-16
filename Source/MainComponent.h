@@ -8,6 +8,7 @@
 #include "AudioDeviceSelectorWindow.h"
 #include "MainProcessorUI.h"
 #include "MainProcessor.h"
+#include "ButtonLightPulseSource.h"
 
 
 #define NUM_CHANNELS 2
@@ -79,9 +80,7 @@ private:
      * This is the master animator pulse source for all of the lighted buttons in the system
     */
 
-    juce::VBlankAnimatorUpdater vblank_animator_updater{ this };
-    std::unique_ptr<juce::Animator> shared_pulse;
-    float g_pulse_alpha = 0.0f;
+    ButtonLightPulseSource* button_light_pulse_source;
     void initialize_system_animation_pulse();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
