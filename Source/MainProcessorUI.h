@@ -12,14 +12,14 @@ class MainProcessorUI : public juce::Component, public SettingsRegistry::MainPro
         virtual ~MainProcessorUI();
         void paint(juce::Graphics&) override;
         void resized() override;
-        void master_bypass_changed(bool master_bypass) override;
+        void main_bypass_changed(bool master_bypass) override {};
         void generator_state_changed(bool mute_all_gens) override {};
         void processor_bypass_changed(bool mute_processor) override {};
 private:
         LightedToggleButtonStyle lighted_toggle_style;
-        fmsmoov::LightedButton button_master_bypass{ "MASTER BYPASS", juce::Colours::red, juce::Colours::white, juce::Colours::white };
-        fmsmoov::LightedButton  button_generator_state{ "GENERATOR ON", juce::Colours::yellow, juce::Colours::white, juce::Colours::black };
-        fmsmoov::LightedButton  button_processor_bypass{ "PROCESSOR BYPASS", juce::Colours::red, juce::Colours::white, juce::Colours::white };
+        std::unique_ptr<fmsmoov::LightedButton> button_main_bypass;
+        std::unique_ptr <fmsmoov::LightedButton> button_generator_state;
+        std::unique_ptr <fmsmoov::LightedButton> button_processor_bypass;
 
         SettingsRegistry& settings_reg;
 

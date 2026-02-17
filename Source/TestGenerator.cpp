@@ -48,12 +48,20 @@ void TestGenerator::getNextAudioBlock(const juce::AudioSourceChannelInfo& buffer
         update_mixer();
     }
 
+    /* 
+     * SIDE EFFECT NOTE:  This TestGenerator MUST NOT be the first source in the upstream mixer.
+     * The following call to clearActiveBufferingRegion will clear the buffer passed in.  If this
+     * is the first source in the main mixer chain, then the input samples will be cleared.  For
+     * Some reason, AudioSourceMixer uses "copyFrom" on the first buffer, and then addFrom in the
+     * subsequent buffers into its own internal temp buffer.
+     */
+
     bufferToFill.clearActiveBufferRegion();
     
     /* You must have a valid audio buffer from the parent, or this will just output garbage
      * which probably has the side effect of muting the output.
      */
-    if (!settings_reg.get_generator_state()) {
+    if (settings_reg.get_generator_state()) {
         mixer->getNextAudioBlock(bufferToFill);
     }
 }
@@ -106,6 +114,10 @@ void TestGenerator::gen_params_changed(const juce::String& gen_num) {
             }
             should_update_mixer.store(true);
         }
+    }
+    else if (gen_num == "gener") {
+        //TODO:  hokey as fuck, this accounts for the other params that start with "generator"
+        //don't do anything
     }
     else {
         //invalid gen num

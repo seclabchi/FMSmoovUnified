@@ -28,7 +28,7 @@ void MainProcessor::releaseResources() {
 
 }
 
-void MainProcessor::master_bypass_changed(bool master_bypass) {
+void MainProcessor::main_bypass_changed(bool master_bypass) {
 
 }
 

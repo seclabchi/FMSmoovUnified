@@ -19,8 +19,8 @@ SettingsRegistry::SettingsRegistry(const juce::String& _reg_name) : reg_name(_re
     
 
     /****************** MAIN PROCESSOR CHAIN **********************/
-    if (!state.hasProperty("master_bypass")) {
-        state.setProperty("master_bypass", false, nullptr);
+    if (!state.hasProperty("main_bypass")) {
+        state.setProperty("main_bypass", false, nullptr);
     }
 
     if (!state.hasProperty("processor_bypass")) {
@@ -86,7 +86,7 @@ SettingsRegistry::~SettingsRegistry() {
 
 void SettingsRegistry::update_atomics() {
 
-    master_bypass.store(state.getProperty("master_bypass", false));
+    main_bypass.store(state.getProperty("main_bypass", false));
     processor_bypass.store(state.getProperty("processor_bypass", false));
     generator_state.store(state.getProperty("generator_state", false));
 
@@ -123,11 +123,11 @@ void SettingsRegistry::valueTreePropertyChanged(juce::ValueTree& vt, const juce:
     //juce::Logger::writeToLog("Setting changed: " + ident.toString());
 
     /**************** MAIN PROCESSOR ****************/
-    if (ident == juce::Identifier("master_bypass")) {
-        master_bypass.store(vt[ident]);
+    if (ident == juce::Identifier("main_bypass")) {
+        main_bypass.store(vt[ident]);
         main_proc_settings_listeners.call([&](MainProcSettingsListener& l)
             {
-                l.master_bypass_changed(master_bypass.load());
+                l.main_bypass_changed(main_bypass.load());
             });
     }
 
@@ -336,10 +336,10 @@ void SettingsRegistry::set_generator_state(bool mute_all_gens) {
     }
 }
 
-void SettingsRegistry::set_master_bypass(bool master_bypass) {
-    bool existing_master_bypass = state.getProperty("master_bypass");
-    if (existing_master_bypass != master_bypass) {
-        state.setProperty("master_bypass", master_bypass, nullptr);
+void SettingsRegistry::set_main_bypass(bool main_bypass) {
+    bool existing_main_bypass = state.getProperty("main_bypass");
+    if (existing_main_bypass != main_bypass) {
+        state.setProperty("main_bypass", main_bypass, nullptr);
         update_atomics();
     }
 }
@@ -348,8 +348,8 @@ void SettingsRegistry::set_processor_bypass(bool processor_bypass) {
     state.setProperty("processor_bypass", processor_bypass, nullptr);
 }
 
-bool SettingsRegistry::get_master_bypass() {
-    return master_bypass.load();
+bool SettingsRegistry::get_main_bypass() {
+    return main_bypass.load();
 }
 
 bool SettingsRegistry::get_processor_bypass() {

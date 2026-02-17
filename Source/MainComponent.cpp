@@ -108,7 +108,7 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill)
 {
-    if (settings_reg->get_master_bypass()) {
+    if (settings_reg->get_main_bypass()) {
         return;
     }
 

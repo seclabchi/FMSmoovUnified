@@ -14,7 +14,7 @@ public:
     void getNextAudioBlock(const juce::AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
 
-    void master_bypass_changed(bool master_bypass) override;
+    void main_bypass_changed(bool master_bypass) override;
     void generator_state_changed(bool mute_all_gens) override {};
     void processor_bypass_changed(bool mute_processor) override {};
 

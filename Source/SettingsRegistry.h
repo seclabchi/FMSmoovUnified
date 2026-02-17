@@ -5,6 +5,7 @@
 #include "fmsmoov_types.h"
 #include "SettingsSliderWire.h"
 #include "SettingsToggleButtonWire.h"
+#include "SettingsTextButtonWire.h"
 #include "SettingsComboBoxWire.h"
 
 /*
@@ -23,7 +24,7 @@ public:
     class MainProcSettingsListener {
     public:
         virtual ~MainProcSettingsListener() = default;
-        virtual void master_bypass_changed(bool master_bypass) = 0;
+        virtual void main_bypass_changed(bool master_bypass) = 0;
         virtual void generator_state_changed(bool new_mute_all_gens) = 0;
         virtual void processor_bypass_changed(bool new_mute_processor) = 0;
     };
@@ -42,14 +43,14 @@ public:
     void set_gen_params(const juce::String& gen_num, fmsmoov::GEN_TYPE type, float freq, float ampl, bool enable);
     void get_gen_params(const juce::String& gen_num, fmsmoov::GEN_TYPE& type, float& freq, float& ampl, bool& enable);
     void set_generator_state(bool mute_all_gens);
-    void set_master_bypass(bool master_bypass);
+    void set_main_bypass(bool master_bypass);
     void set_processor_bypass(bool processor_bypass);
 
     /*
     * These getters read the atomic values and are intended for the audio engine.  For the UI
     * components, use the "wiring" that talks directly to the underlying value trees.
     */
-    bool get_master_bypass();
+    bool get_main_bypass();
     bool get_processor_bypass();
     
     fmsmoov::GEN_TYPE get_gen01_type();
@@ -95,6 +96,16 @@ public:
         }
     }
 
+    std::unique_ptr<fmsmoov::SettingsTextButtonWire> create_text_button_attachment(juce::String& prop, juce::TextButton& b) {
+        if (state.hasProperty(prop)) {
+            return std::make_unique<fmsmoov::SettingsTextButtonWire>(state, prop, b);
+        }
+        else {
+            jassert(false);
+            return nullptr;
+        }
+    }
+
     std::unique_ptr<fmsmoov::SettingsComboBoxWire> create_combo_box_attachment(juce::String& prop, juce::ComboBox& b) {
         if (state.hasProperty(prop)) {
             return std::make_unique<fmsmoov::SettingsComboBoxWire>(state, prop, b);
@@ -119,7 +130,7 @@ private:
     std::atomic<bool> needs_update{ false };
     void timerCallback() override;
 
-    std::atomic<bool> master_bypass{ false };
+    std::atomic<bool> main_bypass{ false };
     std::atomic<bool> processor_bypass{ false };
 
     std::atomic<fmsmoov::GEN_TYPE> gen01_type{ fmsmoov::GEN_TYPE::SINE };
