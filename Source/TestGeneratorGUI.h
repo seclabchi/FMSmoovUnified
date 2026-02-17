@@ -5,6 +5,7 @@
 #include "TestGenGroup.h"
 #include "SettingsRegistry.h"
 #include "LightedToggleButtonStyle.h"
+#include "LightedButton.h"
 
 class TestGeneratorGUI : public juce::Component, public SettingsRegistry::TestGenSettingsListener
 {
@@ -21,6 +22,7 @@ class TestGeneratorGUI : public juce::Component, public SettingsRegistry::TestGe
         TestGenGroup* group_gen_02;
         TestGenGroup* group_gen_03;
         LightedToggleButtonStyle lighted_toggle_style;
+        std::unique_ptr <fmsmoov::LightedButton> button_generator_state;
 
         SettingsRegistry& settings_reg;
 

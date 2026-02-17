@@ -11,6 +11,8 @@ TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_r
     group_gen_02 = new TestGenGroup("gen02", "GEN 02", settings_reg);
     group_gen_03 = new TestGenGroup("gen03", "GEN 03", settings_reg);
 
+    button_generator_state = std::make_unique<fmsmoov::LightedButton>(juce::String("GENERATOR ON"), settings_reg, juce::String("generator_state"), juce::Colours::yellow, juce::Colours::white, juce::Colours::black);
+
     done_button.onClick = [this]() {
         juce::Logger::writeToLog("TestGeneratorGUI done clicked");
 
@@ -23,7 +25,11 @@ TestGeneratorGUI::TestGeneratorGUI(SettingsRegistry& _settings_reg) : settings_r
     addAndMakeVisible(group_gen_02);
     addAndMakeVisible(group_gen_03);
 
-    setSize(800, 400);
+    button_generator_state->setLookAndFeel(&lighted_toggle_style);
+    button_generator_state->setTooltip(TOOLTIP_BUTTON_GENERATOR_STATE);
+    button_generator_state->setToggleState(settings_reg.get_generator_state(), juce::dontSendNotification);
+
+    addAndMakeVisible(*button_generator_state);
 }
 
 TestGeneratorGUI::~TestGeneratorGUI() {
@@ -62,6 +68,7 @@ void TestGeneratorGUI::resized() {
     fb.justifyContent = juce::FlexBox::JustifyContent::flexEnd;
     fb.alignContent = juce::FlexBox::AlignContent::center;
 
+    fb.items.add(juce::FlexItem(*button_generator_state).withWidth(160).withHeight(30).withMargin({ 0,8,0,0 }));
     fb.items.add(juce::FlexItem(done_button).withWidth(80).withHeight(30).withMargin({ 0,8,0,0 }));
 
     fb.performLayout(button_area);

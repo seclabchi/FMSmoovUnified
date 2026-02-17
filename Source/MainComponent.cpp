@@ -235,8 +235,6 @@ void MainComponent::menuItemSelected(int menuItemID, int topLevelMenuIndex) {
             test_generator_window = std::make_unique<TestGeneratorWindow>("FMSmoov Test Generator", content);
             test_generator_window->on_close = [this]() {test_generator_window.reset(); };
             content->on_done_clicked = [this]() { test_generator_window.reset(); };
-            test_generator_window->setSize(800, 600);
-            test_generator_window->centreAroundComponent(getTopLevelComponent(), 800, 600);
         }
         else {
             test_generator_window->toFront(true);

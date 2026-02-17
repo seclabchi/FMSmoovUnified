@@ -1,10 +1,6 @@
 #include "MainProcessorUI.h"
 #include "SettingsTextButtonWire.h"
 
-#define TOOLTIP_BUTTON_MAIN_BYPASS "Bypass entire FMSmoov Toolchain.  Raw in-to-out."
-#define TOOLTIP_BUTTON_GENERATOR_STATE "Enable the test tone generator."
-#define TOOLTIP_BUTTON_PROCESSOR_BYPASS "Disable the main processor chain."
-
 MainProcessorUI::MainProcessorUI(SettingsRegistry& _settings_reg) : settings_reg(_settings_reg)
 {
     button_main_bypass = std::make_unique<fmsmoov::LightedButton>(juce::String("MAIN BYPASS"), settings_reg, juce::String("main_bypass"), juce::Colours::red, juce::Colours::white, juce::Colours::white);

@@ -92,6 +92,20 @@ public:
            subclass also calls the superclass's method.
         */
 
+        void activeWindowStatusChanged() override {
+            if (isActiveWindow()) {
+                for (uint8_t i = 0; i < juce::TopLevelWindow::getNumTopLevelWindows(); ++i) {
+                    if (auto* w = juce::TopLevelWindow::getTopLevelWindow(i)) {
+                        if (w != this) {
+                            w->toFront(false);
+                        }
+                    }
+                }
+
+                this->toFront(true);
+            }
+        }
+
     private:
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainWindow)
     };

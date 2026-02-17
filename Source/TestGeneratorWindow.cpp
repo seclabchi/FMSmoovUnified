@@ -8,6 +8,7 @@ TestGeneratorWindow::TestGeneratorWindow(const juce::String& name, juce::Compone
     setResizable(false, false);
     setUsingNativeTitleBar(false);
     setVisible(true);
+    centreWithSize(800, 400);
 }
 
 TestGeneratorWindow::~TestGeneratorWindow() {
