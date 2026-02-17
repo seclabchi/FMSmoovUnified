@@ -34,9 +34,6 @@ MainComponent::MainComponent() {
     addAndMakeVisible(menu_bar.get());
 #endif
 
-    main_proc_ui = std::make_unique<MainProcessorUI>(*settings_reg);
-    addAndMakeVisible(main_proc_ui.get());
-
     addAndMakeVisible(label_sb_audio_input_device);
     addAndMakeVisible(label_sb_audio_output_device);
     addAndMakeVisible(label_sb_sample_rate);
@@ -51,6 +48,8 @@ MainComponent::MainComponent() {
 
     setSize((int)main_win_width, (int)main_win_height);
     button_light_pulse_source->getInstance()->init(settings_reg.get(), *this);
+
+    addAndMakeVisible(*main_processor);
 }
 
 MainComponent::~MainComponent()
@@ -58,7 +57,6 @@ MainComponent::~MainComponent()
     // This shuts down the audio device and clears the audio source.
     shutdown_audio();
     device_manager->removeChangeListener(this);
-    main_proc_ui.reset();
     settings_reg.reset();
 }
 
@@ -111,6 +109,9 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
     if (settings_reg->get_main_bypass()) {
         return;
     }
+
+    main_processor->getNextAudioBlock(bufferToFill);
+    return;
 
     main_loop_tmpbuf->clear();
 
@@ -188,8 +189,13 @@ void MainComponent::resized()
     fb_sb.items.add(juce::FlexItem(label_sb_audio_input_device).withWidth(text_width_input_device).withMinHeight(25.0f).withMargin({ 5, 0, 5, 5 }));
 
     fb_sb.performLayout(area);
-    area.removeFromBottom(35); //TODO: figure out how to automatically get the height of the status bar
-    main_proc_ui->setBounds(area);
+
+    /* This is all HOKEY AS FUCK as well, and needs to be fixed. */
+
+    area = getLocalBounds();
+    auto status_bar_area = area.removeFromBottom(35); //TODO: figure out how to automatically get the height of the status bar
+    auto menu_area = area.removeFromTop(30);
+    main_processor->setBounds(area);
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source) {

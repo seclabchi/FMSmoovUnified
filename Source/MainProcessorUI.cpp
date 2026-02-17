@@ -32,11 +32,21 @@ MainProcessorUI::MainProcessorUI(SettingsRegistry& _settings_reg) : settings_reg
 
     addAndMakeVisible(*button_processor_bypass);
 
-    setSize(800, 400);
+    /**************** MAIN PROCESSOR COMPONENTS ***************************************************************/
+
+ 
+
 }
 
 MainProcessorUI::~MainProcessorUI() {
     settings_reg.remove_main_proc_settings_listener(this);
+}
+
+void MainProcessorUI::add_level_meter_in(fmsmoov::LevelMeter* _level_meter_in) {
+    level_meter_in = _level_meter_in;
+    addAndMakeVisible(*level_meter_in);
+    level_meter_in->setSize(20, 300);
+    level_meter_in->setTopLeftPosition(50, 50);
 }
 
 void MainProcessorUI::paint(juce::Graphics& g) {

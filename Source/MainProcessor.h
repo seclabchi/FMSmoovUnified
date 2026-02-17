@@ -3,8 +3,10 @@
 #include <JuceHeader.h>
 
 #include "SettingsRegistry.h"
+#include "LevelMeter.h"
+#include "MainProcessorUI.h"
 
-class MainProcessor : public juce::AudioSource, public SettingsRegistry::MainProcSettingsListener
+class MainProcessor : public juce::Component, public juce::AudioSource, public SettingsRegistry::MainProcSettingsListener
 {
 public:
     MainProcessor(SettingsRegistry& _settings_reg, uint32_t _num_channels);
@@ -18,11 +20,17 @@ public:
     void generator_state_changed(bool mute_all_gens) override {};
     void processor_bypass_changed(bool mute_processor) override {};
 
+    void paint(juce::Graphics&) override;
+    void resized() override;
+
 private:
     int current_block_size;
     float current_sample_rate;
     uint32_t num_channels;
     SettingsRegistry& settings_reg;
+
+    std::unique_ptr<MainProcessorUI> main_proc_ui;
+    std::unique_ptr<fmsmoov::LevelMeter> level_meter_in;
 
 };
 

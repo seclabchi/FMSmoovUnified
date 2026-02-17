@@ -67,6 +67,8 @@ public:
     bool get_gen03_enable();
     bool get_generator_state();
 
+    float get_sample_rate();
+
     void flag_update();
     void dump_settings();
 
@@ -150,6 +152,10 @@ private:
     std::atomic<bool> gen03_enable{ false };
 
     std::atomic<bool> generator_state{ true };
+
+
+    std::atomic<float> sample_rate{ 48000.0f };
+
 
     juce::ListenerList<MainProcSettingsListener> main_proc_settings_listeners;
     juce::ListenerList<TestGenSettingsListener> test_gen_settings_listeners;

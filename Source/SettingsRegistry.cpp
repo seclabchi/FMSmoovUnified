@@ -407,3 +407,7 @@ bool SettingsRegistry::get_gen02_enable() {
 bool SettingsRegistry::get_gen03_enable() {
     return gen03_enable.load();
 }
+
+float SettingsRegistry::get_sample_rate() {
+    return sample_rate.load();
+}

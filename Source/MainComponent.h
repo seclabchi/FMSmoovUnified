@@ -6,7 +6,6 @@
 #include "TestGeneratorWindow.h"
 #include "TestGenerator.h"
 #include "AudioDeviceSelectorWindow.h"
-#include "MainProcessorUI.h"
 #include "MainProcessor.h"
 #include "ButtonLightPulseSource.h"
 
@@ -53,7 +52,7 @@ private:
 
     std::unique_ptr<juce::MixerAudioSource> main_mixer;
 
-    std::unique_ptr<MainProcessorUI> main_proc_ui;
+    
     
     std::unique_ptr<juce::MenuBarComponent> menu_bar;
 
