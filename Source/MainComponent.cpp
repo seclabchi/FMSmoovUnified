@@ -110,8 +110,9 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         return;
     }
 
-    main_processor->getNextAudioBlock(bufferToFill);
-    return;
+    if (!settings_reg->get_processor_bypass()) {
+        main_processor->getNextAudioBlock(bufferToFill);
+    }
 
     main_loop_tmpbuf->clear();
 

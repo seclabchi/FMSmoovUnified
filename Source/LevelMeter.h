@@ -21,6 +21,12 @@ namespace fmsmoov {
         void timerCallback() override;
         std::unique_ptr<LevelMeterBackend> backend;
 
+        juce::Image bg_img;
+
+        /* Meter limits (in dB) */
+        float meter_max{ +6.0f };
+        float meter_min{ -60.0f };
+
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeter)
     };
 
