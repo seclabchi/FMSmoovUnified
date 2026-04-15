@@ -45,6 +45,7 @@ public:
     void set_generator_state(bool mute_all_gens);
     void set_main_bypass(bool master_bypass);
     void set_processor_bypass(bool processor_bypass);
+    void set_device_settings(juce::AudioDeviceManager* device_mgr);
 
     /*
     * These getters read the atomic values and are intended for the audio engine.  For the UI

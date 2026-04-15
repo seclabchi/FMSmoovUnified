@@ -5,6 +5,8 @@
 #include "LightedToggleButtonStyle.h"
 #include "LightedButton.h"
 #include "LevelMeter.h"
+#include "LoudnessMeter.h"
+#include "TwoBandSlowAGC.h"
 
 class MainProcessorUI : public juce::Component, public SettingsRegistry::MainProcSettingsListener
 {
@@ -18,6 +20,9 @@ class MainProcessorUI : public juce::Component, public SettingsRegistry::MainPro
         void processor_bypass_changed(bool mute_processor) override {};
 
         void add_level_meter_in(fmsmoov::LevelMeter* _level_meter_in);
+        void add_loudness_meter_in(fmsmoov::LoudnessMeter* _loudness_meter_in);
+        void add_two_band_slow_agc(fmsmoov::TwoBandSlowAGC* _two_band_slow_agc);
+        void add_level_meter_out(fmsmoov::LevelMeter* _level_meter_out);
 private:
         LightedToggleButtonStyle lighted_toggle_style;
         std::unique_ptr<fmsmoov::LightedButton> button_main_bypass;
@@ -26,6 +31,9 @@ private:
 
         SettingsRegistry& settings_reg;
         fmsmoov::LevelMeter* level_meter_in;
+        fmsmoov::LoudnessMeter* loudness_meter_in;
+        fmsmoov::TwoBandSlowAGC* two_band_slow_agc;
+        fmsmoov::LevelMeter* level_meter_out;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainProcessorUI)
 };

@@ -46,9 +46,6 @@ TestGenGroup::TestGenGroup(const juce::String& _component_name, const juce::Stri
         gen_type.addItem(name, static_cast<int>(type));
     }
 
-    //gen_type_value.referTo(settings_reg.state.getPropertyAsValue(gen_type_propname, nullptr));
-    //gen_type.getSelectedIdAsValue().referTo(gen_type_value);
-
     fmsmoov::GEN_TYPE type;
     float freq;
     float ampl;
@@ -61,10 +58,6 @@ TestGenGroup::TestGenGroup(const juce::String& _component_name, const juce::Stri
     frequency_slider_wire = settings_reg.create_slider_attachment(frequency_propname, frequency);
     amplitude_slider_wire = settings_reg.create_slider_attachment(amplitude_propname, amplitude);
     enable_toggle_button_wire = settings_reg.create_toggle_button_attachment(enable_propname, enabled);
-
-    //frequency.getValueObject().referTo(settings_reg.state.getPropertyAsValue(frequency_propname, nullptr));
-    //amplitude.getValueObject().referTo(settings_reg.state.getPropertyAsValue(amplitude_propname, nullptr));
-    //enabled.getToggleStateValue().referTo(settings_reg.state.getPropertyAsValue(enable_propname, nullptr));
 
 }
 

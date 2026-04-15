@@ -411,3 +411,9 @@ bool SettingsRegistry::get_gen03_enable() {
 float SettingsRegistry::get_sample_rate() {
     return sample_rate.load();
 }
+
+void SettingsRegistry::set_device_settings(juce::AudioDeviceManager* device_mgr) {
+    auto new_device_setup = device_mgr->createStateXml();
+    device_setup = juce::ValueTree::fromXml(new_device_setup->toString());
+    needs_update.store(true);
+}

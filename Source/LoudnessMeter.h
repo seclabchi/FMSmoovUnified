@@ -1,25 +1,28 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "LufsEngine.h"
 
 namespace fmsmoov {
-    
-    class LevelMeterBackend;
+   
+    class LoudnessMeterBackend;
 
-    class LevelMeter : public juce::Component, private juce::Timer
+    class LoudnessMeter : public juce::Component, private juce::Timer
     {
     public:
-        LevelMeter();
-        virtual ~LevelMeter();
+        LoudnessMeter();
+        virtual ~LoudnessMeter();
         void paint(juce::Graphics&) override;
         void resized() override;
 
         void prepare(const juce::dsp::ProcessSpec spec);
         void update(const juce::dsp::AudioBlock<float>& block);
 
+        LufsDataSource& get_lufs_source();
+
     private:
         void timerCallback() override;
-        std::unique_ptr<LevelMeterBackend> backend;
+        std::unique_ptr<LoudnessMeterBackend> backend;
 
         juce::Image bg_img;
         juce::Colour meter_rms_color;
@@ -30,7 +33,7 @@ namespace fmsmoov {
         float meter_min{ -60.0f };
         int text_offset = 30;
 
-        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LevelMeter)
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LoudnessMeter)
     };
 
 } //namespace fmsmoov

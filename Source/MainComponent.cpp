@@ -71,7 +71,7 @@ void MainComponent::initialize_audio() {
     main_mixer = std::make_unique<juce::MixerAudioSource>();
 
     main_mixer->addInputSource(main_processor.get(), false);
-    main_mixer->addInputSource(test_generator.get(), false);
+    //main_mixer->addInputSource(test_generator.get(), false);
 
     audio_source_player->setSource(this);
     device_manager->addAudioCallback(audio_source_player.get());
@@ -114,6 +114,13 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
         main_processor->getNextAudioBlock(bufferToFill);
     }
 
+    /*
+     * SOMETHING IS COMPLETELY FUCKED WITH THE GENERATOR CODE DOWNSTREAM FROM HERE.  It was 
+     * driving me INSANE trying to debug a filter problem, when the problem was actually down there
+     * somewhere.  Rip this shit out and redo it.  It's deactivated until further notice.
+     */
+
+    /*
     main_loop_tmpbuf->clear();
 
     main_mixer->getNextAudioBlock(main_loop_tmpbuf_info);
@@ -128,6 +135,7 @@ void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& buffe
             bufferToFill.numSamples
         );
     }
+    */
 
 }
 
@@ -202,6 +210,7 @@ void MainComponent::resized()
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source) {
     if (source == device_manager.get()) {
         update_status_bar();
+        settings_reg->set_device_settings(device_manager.get());
     }
 }
 

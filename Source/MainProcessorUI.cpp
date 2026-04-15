@@ -43,10 +43,32 @@ MainProcessorUI::~MainProcessorUI() {
 }
 
 void MainProcessorUI::add_level_meter_in(fmsmoov::LevelMeter* _level_meter_in) {
+
     level_meter_in = _level_meter_in;
     addAndMakeVisible(*level_meter_in);
-    level_meter_in->setSize(26, 300);
+    level_meter_in->setSize(35, 300);
     level_meter_in->setTopLeftPosition(50, 50);
+}
+
+void MainProcessorUI::add_loudness_meter_in(fmsmoov::LoudnessMeter* _loudness_meter_in) {
+    loudness_meter_in = _loudness_meter_in;
+    addAndMakeVisible(*loudness_meter_in);
+    loudness_meter_in->setSize(35, 300);
+    loudness_meter_in->setTopLeftPosition(120, 50);
+}
+
+void MainProcessorUI::add_two_band_slow_agc(fmsmoov::TwoBandSlowAGC* _two_band_slow_agc) {
+    two_band_slow_agc = _two_band_slow_agc;
+    addAndMakeVisible(*two_band_slow_agc);
+    two_band_slow_agc->setSize(70, 300);
+    two_band_slow_agc->setTopLeftPosition(190, 50);
+}
+
+void MainProcessorUI::add_level_meter_out(fmsmoov::LevelMeter* _level_meter_out) {
+    level_meter_out = _level_meter_out;
+    addAndMakeVisible(*level_meter_out);
+    level_meter_out->setSize(35, 300);
+    level_meter_out->setTopLeftPosition(400, 50);
 }
 
 void MainProcessorUI::paint(juce::Graphics& g) {
